@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Folder, Trash2, Calendar, AlertTriangle, X, Check, Film, Tv, Layers } from 'lucide-react';
 import { Poster } from '../types';
+import { comparePostersNumerically } from '../utils/sortUtils';
 
 interface ManageFoldersModalProps {
   isOpen: boolean;
@@ -196,58 +197,90 @@ export const ManageFoldersModal: React.FC<ManageFoldersModalProps> = ({
                 </div>
               ) : (
                 folderEntries.map(([folderName, items]) => {
-                  const movies = items.filter((p) => p.type === 'movie').length;
-                  const series = items.filter((p) => p.type === 'series').length;
-                  const sampleYears = Array.from(new Set(items.map((p) => p.year))).sort().join(', ');
+                  const sortedItems = [...items].sort(comparePostersNumerically);
+                  const movies = sortedItems.filter((p) => p.type === 'movie').length;
+                  const series = sortedItems.filter((p) => p.type === 'series').length;
+                  const sampleYears = Array.from(new Set(sortedItems.map((p) => p.year))).sort().join(', ');
 
                   return (
                     <div
                       key={folderName}
-                      className="p-3.5 sm:p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 hover:border-zinc-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-colors"
+                      className="p-3.5 sm:p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 hover:border-zinc-700 space-y-3 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          <Folder className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                            <span>{folderName}</span>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300">
-                              {items.length} photos
-                            </span>
-                          </h4>
-                          <div className="flex items-center gap-3 text-xs text-zinc-400 mt-1">
-                            {movies > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Film className="w-3 h-3 text-amber-400" /> {movies} Movies
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <Folder className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                              <span>{folderName}</span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300">
+                                {sortedItems.length} photos
                               </span>
-                            )}
-                            {series > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Tv className="w-3 h-3 text-emerald-400" /> {series} Series
+                            </h4>
+                            <div className="flex items-center gap-3 text-xs text-zinc-400 mt-1">
+                              {movies > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <Film className="w-3 h-3 text-amber-400" /> {movies} Movies
+                                </span>
+                              )}
+                              {series > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <Tv className="w-3 h-3 text-emerald-400" /> {series} Series
+                                </span>
+                              )}
+                              <span className="text-[11px] text-zinc-500">
+                                Years: {sampleYears}
                               </span>
-                            )}
-                            <span className="text-[11px] text-zinc-500">
-                              Years: {sampleYears}
-                            </span>
+                            </div>
                           </div>
                         </div>
+
+                        <button
+                          onClick={() =>
+                            setConfirmTarget({
+                              type: 'folder',
+                              key: folderName,
+                              count: sortedItems.length,
+                              label: `Folder "${folderName}"`,
+                            })
+                          }
+                          className="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-950/80 hover:border-rose-700 border border-zinc-700 text-zinc-200 hover:text-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                          <span>ပြန်ဖျက်မည်</span>
+                        </button>
                       </div>
 
-                      <button
-                        onClick={() =>
-                          setConfirmTarget({
-                            type: 'folder',
-                            key: folderName,
-                            count: items.length,
-                            label: `Folder "${folderName}"`,
-                          })
-                        }
-                        className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-rose-950/80 hover:border-rose-700 border border-zinc-700 text-zinc-200 hover:text-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                        <span>ဤ Folder ပုံများ ပြန်ဖျက်မည် ({items.length})</span>
-                      </button>
+                      {/* Numerical order preview thumbnails */}
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1 border-t border-zinc-850">
+                        <span className="text-[10px] font-semibold text-zinc-500 shrink-0 uppercase tracking-wider">
+                          အစဉ်လိုက်:
+                        </span>
+                        {sortedItems.slice(0, 10).map((item, idx) => (
+                          <div
+                            key={item.id}
+                            title={`${idx + 1}. ${item.title}`}
+                            className="relative w-10 h-14 rounded-md bg-zinc-800 shrink-0 overflow-hidden border border-zinc-750 group"
+                          >
+                            <img
+                              src={item.imageUrl}
+                              alt={item.title}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-x-0 bottom-0 bg-black/80 text-[9px] text-white font-mono text-center font-bold py-0.5">
+                              #{idx + 1}
+                            </div>
+                          </div>
+                        ))}
+                        {sortedItems.length > 10 && (
+                          <span className="text-[10px] text-zinc-500 shrink-0 px-2">
+                            +{sortedItems.length - 10} ပိုရှိသေးသည်
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })

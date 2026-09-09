@@ -158,22 +158,40 @@ export default function App() {
   };
 
   const handleSavePoster = (newPoster: Poster) => {
-    setPosters((prev) => [newPoster, ...prev]);
+    setPosters((prev) => {
+      const filtered = prev.filter(
+        (p) => !(p.driveFileId && p.driveFileId === newPoster.driveFileId) && p.id !== newPoster.id
+      );
+      return [newPoster, ...filtered];
+    });
     showToast(`"${newPoster.title}" added to ${newPoster.type === 'movie' ? 'Movies' : 'Series'}!`);
   };
 
-  // Batch join multiple posters from Drive folders
+  // Batch join multiple posters from Drive folders (with UPSERT support)
   const handleBatchJoinPosters = (newPosters: Poster[]) => {
+    if (!newPosters || newPosters.length === 0) return;
+
     setPosters((prev) => {
-      const existingDriveIds = new Set(prev.filter((p) => p.driveFileId).map((p) => p.driveFileId));
-      const existingIds = new Set(prev.map((p) => p.id));
-      const toAdd = newPosters.filter(
-        (p) => !existingIds.has(p.id) && (!p.driveFileId || !existingDriveIds.has(p.driveFileId))
-      );
-      return [...toAdd, ...prev];
+      const newPostersDriveMap = new Map<string, Poster>();
+      const newPostersIdMap = new Map<string, Poster>();
+
+      newPosters.forEach((p) => {
+        if (p.driveFileId) newPostersDriveMap.set(p.driveFileId, p);
+        newPostersIdMap.set(p.id, p);
+      });
+
+      // Filter out existing versions of incoming posters so they get updated cleanly
+      const remainingPrev = prev.filter((p) => {
+        if (p.driveFileId && newPostersDriveMap.has(p.driveFileId)) return false;
+        if (newPostersIdMap.has(p.id)) return false;
+        return true;
+      });
+
+      // Combine newly imported/updated posters at the front
+      return [...newPosters, ...remainingPrev];
     });
     showToast(
-      `Google Drive မှ ပုံ ${newPosters.length} ပုံအား သက်ဆိုင်ရာ ခုနှစ်အလိုက် အောင်မြင်စွာ သွင်းယူပြီးပါပြီ!`,
+      `Google Drive မှ ပုံ ${newPosters.length} ပုံအား သက်ဆိုင်ရာ ခုနှစ်အလိုက် အောင်မြင်စွာ သွင်းယူ/အဆင့်မြှင့်တင်ပြီးပါပြီ!`,
       'success'
     );
   };

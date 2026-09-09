@@ -80,22 +80,60 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
     setError(null);
     try {
       const { folders, allImages, totalScanned: scanned } = await fetchDriveFoldersAndImages(accessToken);
+      const sortedImages = [...allImages].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+      );
       setFolderGroups(folders);
-      setAllDriveFiles(allImages);
+      setAllDriveFiles(sortedImages);
       setTotalScanned(scanned);
 
-      if (allImages.length > 0 && !selectedDriveFile) {
-        selectSingleFile(allImages[0]);
+      if (sortedImages.length > 0 && !selectedDriveFile) {
+        selectSingleFile(sortedImages[0]);
       }
     } catch (err: any) {
       console.error('Error fetching drive data:', err);
-      // Fallback to basic image listing
+      const errMsg = err?.message || '';
+      const isAuthErr = errMsg.includes('AUTH_EXPIRED') || errMsg.includes('401');
+
+      if (isAuthErr) {
+        setError('Google Drive ချိတ်ဆက်မှု သက်တမ်းကုန်သွားပါပြီ။ ကျေးဇူးပြု၍ Re-connect ပြုလုပ်ပေးပါ။');
+        return;
+      }
+
+      // Fallback to basic image listing with client-side year grouping
       try {
         const fallbackFiles = await listDriveImageFiles(accessToken);
-        setAllDriveFiles(fallbackFiles);
-        setTotalScanned(fallbackFiles.length);
+        const sortedFallback = [...fallbackFiles].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        );
+        setAllDriveFiles(sortedFallback);
+        setTotalScanned(sortedFallback.length);
+
+        if (sortedFallback.length > 0) {
+          const byYear = new Map<number, DriveFile[]>();
+          sortedFallback.forEach((f) => {
+            const yr = (f as any).createdTime ? new Date((f as any).createdTime).getFullYear() : 2026;
+            const targetYr = yr >= 2021 && yr <= 2026 ? yr : 2026;
+            const list = byYear.get(targetYr) || [];
+            list.push(f);
+            byYear.set(targetYr, list);
+          });
+
+          const fallbackGroups: DriveFolderGroup[] = [];
+          byYear.forEach((files, yr) => {
+            files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+            fallbackGroups.push({
+              folderId: `fallback-${yr}`,
+              folderName: `Drive (${yr} Posters)`,
+              detectedYear: yr as MovieYear,
+              detectedType: 'movie',
+              files,
+            });
+          });
+          setFolderGroups(fallbackGroups);
+        }
       } catch (fallbackErr) {
-        setError('Could not connect to Google Drive files. Please check authorization.');
+        setError('Google Drive မှ ဖိုင်များကို ရယူ၍မရသေးပါ။ Re-connect ပြုလုပ်ပေးပါ။');
       }
     } finally {
       setIsLoading(false);
@@ -104,7 +142,7 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
 
   const selectSingleFile = (file: DriveFile) => {
     setSelectedDriveFile(file);
-    const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_.]+/g, ' ');
+    const cleanName = (file.name || 'Untitled').replace(/\.[^/.]+$/, '').replace(/[-_.]+/g, ' ');
     setSingleTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
   };
 
@@ -124,26 +162,36 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
 
   // 1-Click: Import a specific folder group
   const handleImportFolder = async (group: DriveFolderGroup) => {
+    if (!group.files || group.files.length === 0) {
+      setError(`"${group.folderName}" ထဲတွင် ပုံများ မတွေ့ရှိပါ။ ကျေးဇူးပြု၍ ပုံရှိသော Folder ကို ရွေးချယ်ပါ။`);
+      return;
+    }
+
     setIsImporting(true);
     setImportStatus(`Importing ${group.files.length} photos from "${group.folderName}" into Year ${group.detectedYear}...`);
 
     try {
-      const newPosters: Poster[] = group.files.map((file) =>
+      const sortedFiles = [...group.files].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+      );
+
+      const newPosters: Poster[] = sortedFiles.map((file, idx) =>
         createPosterFromDriveFile(
           file,
           group.detectedYear,
           group.detectedType,
           group.detectedType === 'series' ? group.detectedCountry || 'Korea' : undefined,
-          group.folderName
+          group.folderName,
+          idx + 1
         )
       );
 
-      // Trigger public folder and files permissions in background
-      if (group.folderId && !group.folderId.startsWith('ungrouped')) {
-        makeDriveFolderPublic(group.folderId, accessToken!);
+      // Trigger public folder and files permissions in background (non-blocking)
+      if (group.folderId && !group.folderId.startsWith('ungrouped') && !group.folderId.startsWith('fallback')) {
+        makeDriveFolderPublic(group.folderId, accessToken!).catch(() => {});
       }
       const fileIds = group.files.map((f) => f.id);
-      makeDriveFilesPublic(fileIds, accessToken!);
+      makeDriveFilesPublic(fileIds, accessToken!).catch(() => {});
 
       if (onBatchJoinPosters) {
         onBatchJoinPosters(newPosters);
@@ -163,37 +211,50 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
 
   // ⚡ 1-Click: Import ALL folders by Year at once
   const handleImportAllFolders = async () => {
-    if (folderGroups.length === 0) return;
+    const validGroups = folderGroups.filter((g) => g.files && g.files.length > 0);
+    if (validGroups.length === 0) {
+      setError('သွင်းယူရန် ဓာတ်ပုံပါရှိသော Folder မတွေ့ရှိပါ');
+      return;
+    }
+
     setIsImporting(true);
-    const totalFiles = folderGroups.reduce((acc, g) => acc + g.files.length, 0);
+    const totalFiles = validGroups.reduce((acc, g) => acc + g.files.length, 0);
     setImportStatus(`Auto-importing ${totalFiles} photos across all Drive folders sorted by year...`);
 
     try {
       const allNewPosters: Poster[] = [];
       const allFileIds: string[] = [];
+      const seenFileIds = new Set<string>();
 
-      folderGroups.forEach((group) => {
-        group.files.forEach((file) => {
-          allFileIds.push(file.id);
-          allNewPosters.push(
-            createPosterFromDriveFile(
-              file,
-              group.detectedYear,
-              group.detectedType,
-              group.detectedType === 'series' ? group.detectedCountry || 'Korea' : undefined,
-              group.folderName
-            )
-          );
+      validGroups.forEach((group) => {
+        const sortedFiles = [...group.files].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        );
+        sortedFiles.forEach((file, idx) => {
+          if (!seenFileIds.has(file.id)) {
+            seenFileIds.add(file.id);
+            allFileIds.push(file.id);
+            allNewPosters.push(
+              createPosterFromDriveFile(
+                file,
+                group.detectedYear,
+                group.detectedType,
+                group.detectedType === 'series' ? group.detectedCountry || 'Korea' : undefined,
+                group.folderName,
+                idx + 1
+              )
+            );
+          }
         });
       });
 
       // Set public permissions for folders and files in background
-      folderGroups.forEach((group) => {
-        if (group.folderId && !group.folderId.startsWith('ungrouped')) {
-          makeDriveFolderPublic(group.folderId, accessToken!);
+      validGroups.forEach((group) => {
+        if (group.folderId && !group.folderId.startsWith('ungrouped') && !group.folderId.startsWith('fallback')) {
+          makeDriveFolderPublic(group.folderId, accessToken!).catch(() => {});
         }
       });
-      makeDriveFilesPublic(allFileIds, accessToken!);
+      makeDriveFilesPublic(allFileIds, accessToken!).catch(() => {});
 
       if (onBatchJoinPosters) {
         onBatchJoinPosters(allNewPosters);
@@ -350,14 +411,24 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
           </div>
         ) : error ? (
           <div className="p-6 my-auto text-center">
-            <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs max-w-md mx-auto">
-              {error}
-              <button
-                onClick={loadData}
-                className="block mx-auto mt-3 text-white underline font-semibold hover:text-rose-200"
-              >
-                ပြန်လည်ကြိုးစားရန် (Try Again)
-              </button>
+            <div className="p-5 rounded-2xl bg-rose-950/60 border border-rose-800 text-rose-200 text-xs max-w-md mx-auto shadow-xl">
+              <p className="font-semibold leading-relaxed mb-4">{error}</p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={onConnectDrive}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition-colors"
+                >
+                  🔄 Re-connect Google Drive
+                </button>
+                <button
+                  type="button"
+                  onClick={loadData}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs transition-colors"
+                >
+                  ပြန်လည်ကြိုးစားရန် (Retry)
+                </button>
+              </div>
             </div>
           </div>
         ) : isImporting ? (
@@ -501,18 +572,34 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
 
                             <button
                               type="button"
+                              disabled={group.files.length === 0}
                               onClick={() => handleImportFolder(group)}
-                              className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-colors flex items-center gap-1 shadow-sm"
+                              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                                group.files.length === 0
+                                  ? 'bg-zinc-800/60 text-zinc-500 cursor-not-allowed border border-zinc-800'
+                                  : 'bg-sky-600 hover:bg-sky-500 active:scale-95 text-white'
+                              }`}
                             >
-                              <span>သွင်းမည် ({group.files.length})</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
+                              {group.files.length === 0 ? (
+                                <span>ပုံ မရှိပါ (0)</span>
+                              ) : (
+                                <>
+                                  <span>သွင်းမည် ({group.files.length})</span>
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
 
                         {/* Thumbnails row */}
+                        {group.files.length === 0 ? (
+                          <div className="py-4 text-center text-xs text-zinc-500 italic bg-zinc-900/30 rounded-lg mt-2 border border-dashed border-zinc-800/60">
+                            ဤ Folder ထဲတွင် တိုက်ရိုက်ပုံများ မရှိသေးပါ (Drive ထဲသို့ ပုံထည့်ပြီး "ပြန်လည်စစ်ဆေးရန်" နှိပ်နိုင်ပါသည်)
+                          </div>
+                        ) : (
                         <div className="pt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                          {group.files.map((file) => {
+                          {group.files.map((file, fileIdx) => {
                             const thumb =
                               file.thumbnailLink || `https://lh3.googleusercontent.com/d/${file.id}`;
                             return (
@@ -526,6 +613,9 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
                                   referrerPolicy="no-referrer"
                                   className="w-full h-full object-cover"
                                 />
+                                <div className="absolute top-1 left-1 bg-black/85 text-[9px] font-mono text-amber-400 font-bold px-1.5 py-0.5 rounded shadow">
+                                  #{fileIdx + 1}
+                                </div>
                                 <div className="absolute inset-x-0 bottom-0 p-1 bg-black/80 text-[8px] text-zinc-300 truncate">
                                   {file.name}
                                 </div>
@@ -533,6 +623,7 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
                             );
                           })}
                         </div>
+                        )}
                       </div>
                     ))}
                   </div>

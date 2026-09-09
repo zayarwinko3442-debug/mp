@@ -18,6 +18,8 @@ export interface Poster {
   driveFileId?: string;
   driveWebViewLink?: string;
   folderName?: string;
+  originalFileName?: string;
+  orderIndex?: number;
   description: string;
   addedAt: string;
   isCustomUpload?: boolean;

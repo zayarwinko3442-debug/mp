@@ -90,13 +90,12 @@ export function detectCategoryAndCountry(name: string, year: number): {
 /**
  * Clean human-readable title from file name
  */
-export function cleanTitleFromFilename(name: string): string {
-  let clean = name.replace(/\.[^/.]+$/, ''); // remove extension
-  // Remove year if appended (e.g. "Dune 2024" or "Dune (2024)")
-  clean = clean.replace(/[\(_-]?\b202[1-6]\b[\)]?/g, '');
-  // Replace underscores and hyphens with spaces
+export function cleanTitleFromFilename(name?: string): string {
+  if (!name) return 'Untitled';
+  const noExt = name.replace(/\.[^/.]+$/, ''); // remove extension
+  let clean = noExt.replace(/[\(_-]?\b202[1-6]\b[\)]?/g, '').trim();
   clean = clean.replace(/[-_.]+/g, ' ').trim();
-  if (!clean) return name;
+  if (!clean) return noExt || 'Untitled';
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 
@@ -292,7 +291,13 @@ async function fetchAllDrivePages(
     if (!res.ok) {
       const errText = await res.text();
       console.warn(`Drive fetch error on page ${pageCount}:`, errText);
-      break;
+      if (res.status === 401) {
+        throw new Error('AUTH_EXPIRED: Google Drive access token expired. Please reconnect.');
+      }
+      if (allItems.length > 0) {
+        break; // return what was gathered so far if paginating
+      }
+      throw new Error(`Drive fetch error (${res.status}): ${errText}`);
     }
 
     const data = await res.json();
@@ -310,7 +315,7 @@ async function fetchAllDrivePages(
  * Fetch both folders and images from Google Drive with full pagination,
  * resolving nested folder hierarchy and grouping images by folder
  * with auto-detected Year (2021-2026), Category (Movie/Series), and Country.
- * Supports scanning up to 5000+ files using max pageSize (1000).
+ * Supports scanning up to 5000+ files.
  */
 export async function fetchDriveFoldersAndImages(
   accessToken: string,
@@ -321,23 +326,52 @@ export async function fetchDriveFoldersAndImages(
   totalScanned: number;
 }> {
   try {
-    // 1. Fetch all folders (paginated up to 500 folders)
+    // 1. Fetch all folders with full Drive support (My Drive + Shared Drives)
     const folderQuery = encodeURIComponent("mimeType = 'application/vnd.google-apps.folder' and trashed = false");
-    const folderUrl = `https://www.googleapis.com/drive/v3/files?q=${folderQuery}&fields=${encodeURIComponent('nextPageToken,files(id,name,parents)')}&pageSize=100`;
+    const folderUrl = `https://www.googleapis.com/drive/v3/files?q=${folderQuery}&fields=${encodeURIComponent('nextPageToken,files(id,name,parents)')}&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true`;
     const driveFolders: Array<{ id: string; name: string; parents?: string[] }> = await fetchAllDrivePages(
       folderUrl,
       accessToken,
-      500
+      1000
     );
 
-    // 2. Fetch all image files with full pagination up to maxPhotos (using pageSize=1000 for maximum speed)
+    // 2. Fetch all image files with full pagination up to maxPhotos
     const imageQuery = encodeURIComponent("mimeType contains 'image/' and trashed = false");
-    const imageUrl = `https://www.googleapis.com/drive/v3/files?q=${imageQuery}&fields=${encodeURIComponent('nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,createdTime,parents)')}&pageSize=1000&orderBy=createdTime desc`;
+    const imageUrl = `https://www.googleapis.com/drive/v3/files?q=${imageQuery}&fields=${encodeURIComponent('nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,createdTime,parents)')}&pageSize=500&supportsAllDrives=true&includeItemsFromAllDrives=true`;
     const allImages: DriveFile[] = await fetchAllDrivePages(imageUrl, accessToken, maxPhotos);
 
     // Map of folderId -> folder
     const folderMap = new Map<string, { id: string; name: string; parents?: string[] }>();
     driveFolders.forEach((f) => folderMap.set(f.id, f));
+
+    // Resolve any parent folders referenced by images that were not in initial driveFolders
+    const unknownParentIds = new Set<string>();
+    allImages.forEach((img) => {
+      if (img.parents) {
+        img.parents.forEach((pid) => {
+          if (!folderMap.has(pid)) unknownParentIds.add(pid);
+        });
+      }
+    });
+
+    if (unknownParentIds.size > 0) {
+      const missingIds = Array.from(unknownParentIds).slice(0, 30);
+      await Promise.allSettled(
+        missingIds.map(async (pid) => {
+          try {
+            const r = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${pid}?fields=id,name,parents&supportsAllDrives=true`,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            if (r.ok) {
+              const f = await r.json();
+              folderMap.set(f.id, f);
+              driveFolders.push(f);
+            }
+          } catch {}
+        })
+      );
+    }
 
     // Resolve full folder path / hierarchy for better detection (e.g. "Series / Korea / 2024")
     const getFolderPathName = (folderId: string): string => {
@@ -353,8 +387,8 @@ export async function fetchDriveFoldersAndImages(
       return parts.join(' / ');
     };
 
-    // Group images by folder
-    const groupsByFolderId = new Map<string, DriveFile[]>();
+    // Group images directly by immediate parent folder
+    const directImagesByFolder = new Map<string, DriveFile[]>();
     const ungroupedImages: DriveFile[] = [];
 
     allImages.forEach((img) => {
@@ -369,55 +403,95 @@ export async function fetchDriveFoldersAndImages(
       }
 
       if (matchedFolderId) {
-        const list = groupsByFolderId.get(matchedFolderId) || [];
+        const list = directImagesByFolder.get(matchedFolderId) || [];
         list.push(img);
-        groupsByFolderId.set(matchedFolderId, list);
+        directImagesByFolder.set(matchedFolderId, list);
       } else {
         ungroupedImages.push(img);
       }
     });
 
-    const folderGroups: DriveFolderGroup[] = [];
+    // Helper: is childFolder a descendant of ancestorFolder?
+    const isDescendant = (childId: string, ancestorId: string): boolean => {
+      let currentId: string | undefined = childId;
+      let depth = 0;
+      while (currentId && folderMap.has(currentId) && depth < 6) {
+        const f = folderMap.get(currentId)!;
+        if (f.parents && f.parents.includes(ancestorId)) return true;
+        currentId = f.parents && f.parents[0];
+        depth++;
+      }
+      return false;
+    };
 
-    // Build folder groups that actually contain images
-    groupsByFolderId.forEach((files, folderId) => {
+    // Aggregate files: For every folder, collect direct images PLUS any images in child subfolders
+    const folderGroups: DriveFolderGroup[] = [];
+    const processedFolderIds = new Set<string>();
+
+    driveFolders.forEach((folder) => {
+      const folderId = folder.id;
+      const fullPath = getFolderPathName(folderId) || folder.name;
+
+      // Collect direct files
+      const fileMap = new Map<string, DriveFile>();
+      const directList = directImagesByFolder.get(folderId) || [];
+      directList.forEach((f) => fileMap.set(f.id, f));
+
+      // Also collect files from child subfolders
+      directImagesByFolder.forEach((childFiles, childId) => {
+        if (childId !== folderId && isDescendant(childId, folderId)) {
+          childFiles.forEach((f) => fileMap.set(f.id, f));
+        }
+      });
+
+      const allFolderFiles = Array.from(fileMap.values());
+
+      // Only include folders that have files, or match relevant keywords
+      const yr = detectYear(fullPath);
+      const isRelevantEmpty =
+        yr || folder.name.toLowerCase().includes('movie') || folder.name.toLowerCase().includes('series');
+
+      if (allFolderFiles.length > 0 || isRelevantEmpty) {
+        const { type: detectedType, country: detectedCountry } = detectCategoryAndCountry(fullPath, yr);
+
+        // Sort files numerically / naturally by file name (1.jpg, 2.jpg, ..., 10.jpg)
+        allFolderFiles.sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        );
+
+        folderGroups.push({
+          folderId,
+          folderName: fullPath,
+          detectedYear: yr,
+          detectedType,
+          detectedCountry,
+          files: allFolderFiles,
+        });
+        processedFolderIds.add(folderId);
+      }
+    });
+
+    // Also include any direct folder groups that were not in driveFolders
+    directImagesByFolder.forEach((files, folderId) => {
+      if (processedFolderIds.has(folderId)) return;
       const folder = folderMap.get(folderId);
-      const folderName = folder ? folder.name : 'Unknown Folder';
+      const folderName = folder ? folder.name : 'Folder';
       const fullPath = getFolderPathName(folderId) || folderName;
 
-      // Detect year from full path or folder name
       const detectedYear = detectYear(fullPath);
       const { type: detectedType, country: detectedCountry } = detectCategoryAndCountry(fullPath, detectedYear);
 
+      files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
       folderGroups.push({
         folderId,
-        folderName,
+        folderName: fullPath,
         detectedYear,
         detectedType,
         detectedCountry,
         files,
       });
-    });
-
-    // Also include any detected folders that might have been empty in the first pass
-    // but exist in Drive (e.g. user created 2021, 2022, 2023, etc.)
-    driveFolders.forEach((folder) => {
-      // If folder already has files grouped, skip
-      if (groupsByFolderId.has(folder.id)) return;
-
-      const yr = detectYear(folder.name);
-      // Only include if folder name has year (2021-2026) or movie/series keyword
-      if (yr || folder.name.toLowerCase().includes('movie') || folder.name.toLowerCase().includes('series')) {
-        const { type: detectedType, country: detectedCountry } = detectCategoryAndCountry(folder.name, yr);
-        folderGroups.push({
-          folderId: folder.id,
-          folderName: folder.name,
-          detectedYear: yr,
-          detectedType,
-          detectedCountry,
-          files: [],
-        });
-      }
+      processedFolderIds.add(folderId);
     });
 
     // If there are ungrouped images (stored in root of Drive), group them by detected year
@@ -431,6 +505,7 @@ export async function fetchDriveFoldersAndImages(
       });
 
       ungroupedByYear.forEach((files, yr) => {
+        files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
         folderGroups.push({
           folderId: `ungrouped-${yr}`,
           folderName: `Drive Root (${yr} Posters)`,
@@ -441,8 +516,11 @@ export async function fetchDriveFoldersAndImages(
       });
     }
 
-    // Sort folder groups by year descending
-    folderGroups.sort((a, b) => b.detectedYear - a.detectedYear);
+    // Sort folder groups by year descending, then by file count descending
+    folderGroups.sort((a, b) => {
+      if (b.files.length !== a.files.length) return b.files.length - a.files.length;
+      return b.detectedYear - a.detectedYear;
+    });
 
     return {
       folders: folderGroups,
@@ -463,7 +541,8 @@ export function createPosterFromDriveFile(
   year: number,
   type: MediaType,
   country?: SeriesCountry,
-  folderName?: string
+  folderName?: string,
+  orderIndex?: number
 ): Poster {
   // Primary: Google Drive high-resolution thumbnail endpoint (instant rendering)
   const displayUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w1200`;
@@ -483,6 +562,8 @@ export function createPosterFromDriveFile(
     driveFileId: file.id,
     driveWebViewLink: file.webViewLink,
     folderName: folderName,
+    originalFileName: file.name,
+    orderIndex: orderIndex,
     description: `${title} (${year}) - ${type === 'movie' ? 'Cinema Feature Poster' : `${country || 'Asian'} Series Drama Poster`}.`,
     addedAt: file.createdTime || new Date().toISOString(),
     isCustomUpload: true,

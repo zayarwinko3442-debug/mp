@@ -17,8 +17,23 @@ provider.addScope('https://www.googleapis.com/auth/drive.file');
 provider.addScope('https://www.googleapis.com/auth/drive.readonly');
 provider.setCustomParameters({ prompt: 'select_account' });
 
+const TOKEN_KEY = 'mp_drive_access_token';
 let isSigningIn = false;
-let cachedAccessToken: string | null = null;
+let cachedAccessToken: string | null = (() => {
+  try {
+    return sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+})();
+
+// Clear token on expiry
+export const clearCachedAccessToken = () => {
+  cachedAccessToken = null;
+  try {
+    sessionStorage.removeItem(TOKEN_KEY);
+  } catch {}
+};
 
 // Initialize auth state listener
 export const initAuth = (
@@ -29,11 +44,15 @@ export const initAuth = (
     if (user) {
       if (cachedAccessToken) {
         if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        if (onAuthFailure) onAuthFailure();
+      } else {
+        // Keep user logged in even if token needs refresh
+        if (onAuthSuccess) onAuthSuccess(user, '');
       }
     } else {
       cachedAccessToken = null;
+      try {
+        sessionStorage.removeItem(TOKEN_KEY);
+      } catch {}
       if (onAuthFailure) onAuthFailure();
     }
   });
@@ -50,6 +69,10 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     }
 
     cachedAccessToken = credential.accessToken;
+    try {
+      sessionStorage.setItem(TOKEN_KEY, cachedAccessToken);
+    } catch {}
+
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error) {
     console.error('Sign in error:', error);
@@ -65,5 +88,5 @@ export const getAccessToken = async (): Promise<string | null> => {
 
 export const logout = async () => {
   await signOut(auth);
-  cachedAccessToken = null;
+  clearCachedAccessToken();
 };

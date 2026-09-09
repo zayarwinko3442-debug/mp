@@ -1,8 +1,9 @@
-import React from 'react';
-import { Film, Tv, Sparkles, ChevronRight, Search, UploadCloud } from 'lucide-react';
+import React, { useState } from 'react';
+import { Film, Tv, Sparkles, ChevronRight, Search, UploadCloud, LayoutGrid, Grid } from 'lucide-react';
 import { Poster, ActiveTab } from '../types';
 import { PosterCard } from './PosterCard';
 import { BrandLogo } from './BrandLogo';
+import { comparePostersNumerically } from '../utils/sortUtils';
 
 interface HomeViewProps {
   posters: Poster[];
@@ -25,6 +26,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   setSearchQuery,
   isAdmin = false,
 }) => {
+  const [viewSize, setViewSize] = useState<'large' | 'compact'>('large');
   // Filter by search
   const filtered = posters.filter((p) => {
     if (!searchQuery.trim()) return true;
@@ -37,19 +39,19 @@ export const HomeView: React.FC<HomeViewProps> = ({
     );
   });
 
-  // Sort movies and series so 2026 releases and newest custom additions appear first
+  // Sort movies and series so 2026 releases appear first, and items in the same year/folder are naturally numbered
   const movies = filtered
     .filter((p) => p.type === 'movie')
     .sort((a, b) => {
       if (b.year !== a.year) return b.year - a.year;
-      return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
+      return comparePostersNumerically(a, b);
     });
 
   const series = filtered
     .filter((p) => p.type === 'series')
     .sort((a, b) => {
       if (b.year !== a.year) return b.year - a.year;
-      return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
+      return comparePostersNumerically(a, b);
     });
 
   // Featured hero poster (prioritize latest 2026 custom upload or first 2026 poster)
@@ -122,25 +124,57 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       )}
 
-      {/* Search Bar */}
-      <div className="relative max-w-md mx-auto sm:mx-0">
-        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          id="input-global-search"
-          type="text"
-          placeholder="Search posters by title, year, genre or country..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 text-xs sm:text-sm focus:outline-none focus:border-rose-500 transition-colors shadow-inner"
-        />
-        {searchQuery && (
+      {/* Search Bar & View Size Switcher */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative w-full max-w-md">
+          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            id="input-global-search"
+            type="text"
+            placeholder="Search posters by title, year, genre or country..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 text-xs sm:text-sm focus:outline-none focus:border-rose-500 transition-colors shadow-inner"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-white"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* View Size Switcher (Large vs Compact) */}
+        <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-1 shrink-0 self-start sm:self-auto">
           <button
-            onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-white"
+            type="button"
+            onClick={() => setViewSize('large')}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewSize === 'large'
+                ? 'bg-rose-600 text-white shadow-md font-extrabold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+            title="Large View (ပိုကြီးသော ပုံများ)"
           >
-            Clear
+            <Grid className="w-3.5 h-3.5" />
+            <span>ပုံကြီး (Large)</span>
           </button>
-        )}
+          <button
+            type="button"
+            onClick={() => setViewSize('compact')}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewSize === 'compact'
+                ? 'bg-rose-600 text-white shadow-md font-extrabold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+            title="Compact View (ပုံလတ်များ)"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>ပုံလတ်</span>
+          </button>
+        </div>
       </div>
 
       {/* SECTION 1: 🎬 MOVIE */}
@@ -175,11 +209,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
             No movie posters found. Try another search or upload one!
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+          <div
+            className={
+              viewSize === 'large'
+                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6'
+                : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4'
+            }
+          >
             {movies.slice(0, 12).map((poster) => (
               <PosterCard
                 key={poster.id}
                 poster={poster}
+                size={viewSize}
                 onSelect={onSelectPoster}
                 onDelete={isAdmin ? onDeletePoster : undefined}
               />
@@ -220,11 +261,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
             No series posters found. Try another search or upload one!
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+          <div
+            className={
+              viewSize === 'large'
+                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6'
+                : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4'
+            }
+          >
             {series.slice(0, 12).map((poster) => (
               <PosterCard
                 key={poster.id}
                 poster={poster}
+                size={viewSize}
                 onSelect={onSelectPoster}
                 onDelete={isAdmin ? onDeletePoster : undefined}
               />
