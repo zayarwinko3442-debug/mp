@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <!-- Deep Royal Blue for M outer bar -->
+    <linearGradient id="mpBlueOuter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0052d4" />
+      <stop offset="100%" stop-color="#00319e" />
+    </linearGradient>
+
+    <!-- Dark Navy shadow facet in M base -->
+    <linearGradient id="mpShadowBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#002166" />
+      <stop offset="100%" stop-color="#00123d" />
+    </linearGradient>
+
+    <!-- Vibrant Royal Blue for M peak -->
+    <linearGradient id="mpBluePeak" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0055ff" />
+      <stop offset="100%" stop-color="#1a75ff" />
+    </linearGradient>
+
+    <!-- Dark Navy fold between M and P -->
+    <linearGradient id="mpShadowFold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00267a" />
+      <stop offset="100%" stop-color="#00164a" />
+    </linearGradient>
+
+    <!-- Electric Cyan Blue for P stem and loop -->
+    <linearGradient id="mpCyanStem" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0077ff" />
+      <stop offset="100%" stop-color="#00a6ff" />
+    </linearGradient>
+
+    <!-- Bright Electric Cyan for top and loop -->
+    <linearGradient id="mpCyanLoop" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0091ff" />
+      <stop offset="100%" stop-color="#38b6ff" />
+    </linearGradient>
+  </defs>
+
+  <!-- Clean White Background matching user's uploaded LOgo.jpg -->
+  <rect width="600" height="600" rx="36" fill="#ffffff" />
+
+  <!-- 3D Geometric MP Ribbon Group -->
+  <g transform="translate(130, 150) scale(1.05)">
+    <!-- 1. M Left-most slanted bar -->
+    <polygon points="38,100 86,100 48,185 0,185" fill="url(#mpBlueOuter)" />
+
+    <!-- 2. M Left internal shadow fold -->
+    <polygon points="86,100 114,100 76,185 48,185" fill="url(#mpShadowBase)" />
+
+    <!-- 3. M Middle upward stroke to peak -->
+    <polygon points="114,100 162,15 132,15 76,185" fill="url(#mpBluePeak)" />
+
+    <!-- 4. M to P downward shadow fold -->
+    <polygon points="162,15 186,15 142,185 116,185" fill="url(#mpShadowFold)" />
+
+    <!-- 5. P Main upright ribbon stem -->
+    <polygon points="186,15 234,15 166,185 142,185" fill="url(#mpCyanStem)" />
+
+    <!-- 6. P Top horizontal bar -->
+    <polygon points="224,15 316,15 292,72 200,72" fill="url(#mpCyanLoop)" />
+
+    <!-- 7. P Right slanted curve/edge -->
+    <polygon points="316,15 316,28 274,124 232,124 292,72" fill="url(#mpCyanLoop)" />
+
+    <!-- 8. P Bottom return loop -->
+    <polygon points="274,124 200,124 216,72 258,72" fill="url(#mpCyanStem)" />
+  </g>
+
+  <!-- Text: Mobile Perfect matching user's uploaded LOgo.jpg -->
+  <text x="300" y="440" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="52" font-weight="900" fill="#000000" letter-spacing="-1">
+    Mobile Perfect
+  </text>
+</svg>

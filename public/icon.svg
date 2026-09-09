@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="mp-blue-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#004cd8" />
+      <stop offset="100%" stop-color="#002f99" />
+    </linearGradient>
+    <linearGradient id="mp-shadow-fold" x1="0%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#001f70" />
+      <stop offset="100%" stop-color="#00134d" />
+    </linearGradient>
+    <linearGradient id="mp-blue-mid" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0055ff" />
+      <stop offset="60%" stop-color="#0066ff" />
+      <stop offset="100%" stop-color="#1a75ff" />
+    </linearGradient>
+    <linearGradient id="mp-shadow-fold2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#002b8a" />
+      <stop offset="100%" stop-color="#001859" />
+    </linearGradient>
+    <linearGradient id="mp-cyan-bright" x1="0%" y1="0%" x2="100%" y2="80%">
+      <stop offset="0%" stop-color="#0080ff" />
+      <stop offset="50%" stop-color="#1a94ff" />
+      <stop offset="100%" stop-color="#38b6ff" />
+    </linearGradient>
+    <linearGradient id="mp-cyan-loop" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#1a8cff" />
+      <stop offset="100%" stop-color="#47c2ff" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="110" fill="#ffffff" />
+  
+  <g transform="translate(68, 145) scale(1.15)">
+    <polygon points="38,100 84,100 48,185 2,185" fill="url(#mp-blue-dark)" />
+    <polygon points="84,100 114,100 78,185 48,185" fill="url(#mp-shadow-fold)" />
+    <polygon points="114,100 162,15 132,15 78,185" fill="url(#mp-blue-mid)" />
+    <polygon points="162,15 186,15 142,185 116,185" fill="url(#mp-shadow-fold2)" />
+    <polygon points="186,15 234,15 166,185 142,185" fill="url(#mp-cyan-bright)" />
+    <polygon points="224,15 316,15 292,72 200,72" fill="url(#mp-cyan-bright)" />
+    <polygon points="316,15 316,28 274,124 232,124 292,72" fill="url(#mp-cyan-loop)" />
+    <polygon points="274,124 200,124 216,72 258,72" fill="url(#mp-cyan-bright)" />
+  </g>
+</svg>

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 220" width="340" height="220">
+  <defs>
+    <linearGradient id="icoMpBlueOuter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0052d4" />
+      <stop offset="100%" stop-color="#00319e" />
+    </linearGradient>
+    <linearGradient id="icoMpShadowBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#002166" />
+      <stop offset="100%" stop-color="#00123d" />
+    </linearGradient>
+    <linearGradient id="icoMpBluePeak" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0055ff" />
+      <stop offset="100%" stop-color="#1a75ff" />
+    </linearGradient>
+    <linearGradient id="icoMpShadowFold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00267a" />
+      <stop offset="100%" stop-color="#00164a" />
+    </linearGradient>
+    <linearGradient id="icoMpCyanStem" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0077ff" />
+      <stop offset="100%" stop-color="#00a6ff" />
+    </linearGradient>
+    <linearGradient id="icoMpCyanLoop" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0091ff" />
+      <stop offset="100%" stop-color="#38b6ff" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(10, 10)">
+    <!-- 1. M Left-most slanted bar -->
+    <polygon points="38,100 86,100 48,185 0,185" fill="url(#icoMpBlueOuter)" />
+
+    <!-- 2. M Left internal shadow fold -->
+    <polygon points="86,100 114,100 76,185 48,185" fill="url(#icoMpShadowBase)" />
+
+    <!-- 3. M Middle upward stroke to peak -->
+    <polygon points="114,100 162,15 132,15 76,185" fill="url(#icoMpBluePeak)" />
+
+    <!-- 4. M to P downward shadow fold -->
+    <polygon points="162,15 186,15 142,185 116,185" fill="url(#icoMpShadowFold)" />
+
+    <!-- 5. P Main upright ribbon stem -->
+    <polygon points="186,15 234,15 166,185 142,185" fill="url(#icoMpCyanStem)" />
+
+    <!-- 6. P Top horizontal bar -->
+    <polygon points="224,15 316,15 292,72 200,72" fill="url(#icoMpCyanLoop)" />
+
+    <!-- 7. P Right slanted curve/edge -->
+    <polygon points="316,15 316,28 274,124 232,124 292,72" fill="url(#icoMpCyanLoop)" />
+
+    <!-- 8. P Bottom return loop -->
+    <polygon points="274,124 200,124 216,72 258,72" fill="url(#icoMpCyanStem)" />
+  </g>
+</svg>

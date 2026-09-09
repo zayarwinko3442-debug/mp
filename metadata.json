@@ -1,0 +1,6 @@
+{
+  "name": "Movie Perfect",
+  "description": "Movie & Series Photo Poster Catalog with Google Drive integration",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
