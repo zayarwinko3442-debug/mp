@@ -16,7 +16,7 @@ import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { ManageFoldersModal } from './components/ManageFoldersModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { BrandLogo } from './components/BrandLogo';
-import { Film, Tv, UploadCloud, Smartphone, CheckCircle, AlertCircle, Folder, Eye, EyeOff, Lock } from 'lucide-react';
+import { Film, Tv, Home, UploadCloud, Smartphone, CheckCircle, AlertCircle, Folder, Eye, EyeOff, Lock } from 'lucide-react';
 
 const STORAGE_KEY = 'movie_perfect_posters_v1';
 const OWNER_EMAILS = ['movieperfect155@gmail.com', 'zayarwinko3442@gmail.com'];
@@ -351,9 +351,9 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-20 sm:pb-8">
         {/* Sub-Header Breadcrumb / Hierarchy Indicator & Quick Action */}
-        <div className="mb-6 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className={`${showAdminControls ? 'flex' : 'hidden sm:flex'} mb-4 sm:mb-6 p-2.5 sm:p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex-wrap items-center justify-between gap-2.5 sm:gap-3 text-xs`}>
           <div className="flex items-center gap-2 text-zinc-400">
             <BrandLogo size="sm" />
             <span className="font-bold text-zinc-200">Movie Perfect</span>
@@ -454,7 +454,7 @@ export default function App() {
 
       {/* Floating Action Button for Mobile Users (Admin only) */}
       {showAdminControls && (
-        <div className="fixed bottom-5 right-5 z-30 sm:hidden flex flex-col gap-2">
+        <div className="fixed bottom-16 right-4 z-30 sm:hidden flex flex-col gap-2">
           <button
             id="btn-mobile-upload-fab"
             onClick={() => setIsUploadOpen(true)}
@@ -467,7 +467,7 @@ export default function App() {
       )}
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-zinc-900 bg-zinc-950/80 py-8 text-center text-xs text-zinc-500">
+      <footer className="mt-auto border-t border-zinc-900 bg-zinc-950/80 py-8 text-center text-xs text-zinc-500 pb-24 sm:pb-8">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <BrandLogo size="sm" />
@@ -500,6 +500,57 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Fixed Bottom Navigation Bar */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-lg border-t border-zinc-800/80 px-3 py-1.5 flex items-center justify-around shadow-2xl">
+        <button
+          id="mobile-bottom-nav-home"
+          onClick={() => {
+            setActiveTab('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-1 py-1.5 px-4 rounded-xl transition-all ${
+            activeTab === 'home'
+              ? 'text-rose-400 font-bold bg-zinc-900'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Home className="w-5 h-5" />
+          <span className="text-[10px]">Home</span>
+        </button>
+
+        <button
+          id="mobile-bottom-nav-movie"
+          onClick={() => {
+            setActiveTab('movie');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-1 py-1.5 px-4 rounded-xl transition-all ${
+            activeTab === 'movie'
+              ? 'text-amber-400 font-bold bg-zinc-900'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Film className="w-5 h-5" />
+          <span className="text-[10px]">Movie ({movieCount})</span>
+        </button>
+
+        <button
+          id="mobile-bottom-nav-series"
+          onClick={() => {
+            setActiveTab('series');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-1 py-1.5 px-4 rounded-xl transition-all ${
+            activeTab === 'series'
+              ? 'text-emerald-400 font-bold bg-zinc-900'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Tv className="w-5 h-5" />
+          <span className="text-[10px]">Series ({seriesCount})</span>
+        </button>
+      </nav>
 
       {/* Toast Notification Alert */}
       {toast && (

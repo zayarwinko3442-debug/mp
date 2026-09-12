@@ -76,7 +76,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent" />
           </div>
 
-          <div className="relative z-10 p-6 sm:p-10 md:p-12 max-w-3xl flex flex-col justify-end min-h-[340px] sm:min-h-[400px]">
+          <div className="relative z-10 p-4 sm:p-10 md:p-12 max-w-3xl flex flex-col justify-end min-h-[260px] sm:min-h-[380px]">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-700/90 shadow-md backdrop-blur-md">
                 <BrandLogo size="sm" />
@@ -93,7 +93,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-3">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-2 sm:mb-3">
               {featured.title}
             </h1>
 
@@ -212,8 +212,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div
             className={
               viewSize === 'large'
-                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6'
-                : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4'
+                ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6'
+                : 'grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4'
             }
           >
             {movies.slice(0, 12).map((poster) => (
@@ -264,8 +264,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div
             className={
               viewSize === 'large'
-                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6'
-                : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4'
+                ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6'
+                : 'grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4'
             }
           >
             {series.slice(0, 12).map((poster) => (
