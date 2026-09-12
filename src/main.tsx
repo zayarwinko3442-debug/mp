@@ -4,16 +4,13 @@ import App from './App.tsx';
 import {ErrorBoundary} from './components/ErrorBoundary.tsx';
 import './index.css';
 
-// Force clear any old Service Worker registrations and caches so latest UI always displays
+// Safely unregister any legacy service workers
 try {
-  if ('serviceWorker' in navigator) {
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((reg) => reg.unregister());
-    }).catch(() => {});
-  }
-  if ('caches' in window) {
-    caches.keys().then((keys) => {
-      keys.forEach((key) => caches.delete(key));
+      registrations.forEach((reg) => {
+        try { reg.unregister(); } catch {}
+      });
     }).catch(() => {});
   }
 } catch {}

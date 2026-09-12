@@ -29,28 +29,32 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [viewSize, setViewSize] = useState<'large' | 'compact'>('large');
   // Filter by search
   const filtered = posters.filter((p) => {
+    if (!p) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    return (
-      p.title.toLowerCase().includes(q) ||
-      p.genre.toLowerCase().includes(q) ||
-      (p.country && p.country.toLowerCase().includes(q)) ||
-      p.year.toString().includes(q)
-    );
+    const title = (p.title || '').toLowerCase();
+    const genre = (p.genre || '').toLowerCase();
+    const country = (p.country || '').toLowerCase();
+    const year = (p.year || '').toString();
+    return title.includes(q) || genre.includes(q) || country.includes(q) || year.includes(q);
   });
 
   // Sort movies and series so 2026 releases appear first, and items in the same year/folder are naturally numbered
   const movies = filtered
-    .filter((p) => p.type === 'movie')
+    .filter((p) => p && p.type === 'movie')
     .sort((a, b) => {
-      if (b.year !== a.year) return b.year - a.year;
+      const yearB = b.year || 0;
+      const yearA = a.year || 0;
+      if (yearB !== yearA) return yearB - yearA;
       return comparePostersNumerically(a, b);
     });
 
   const series = filtered
-    .filter((p) => p.type === 'series')
+    .filter((p) => p && p.type === 'series')
     .sort((a, b) => {
-      if (b.year !== a.year) return b.year - a.year;
+      const yearB = b.year || 0;
+      const yearA = a.year || 0;
+      if (yearB !== yearA) return yearB - yearA;
       return comparePostersNumerically(a, b);
     });
 
@@ -68,7 +72,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="absolute inset-0">
             <img
               src={featured.imageUrl}
-              alt={featured.title}
+              alt={featured.title || 'Featured Poster'}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover object-center opacity-30 filter blur-sm scale-105"
             />
@@ -85,21 +89,27 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <span className="flex items-center gap-1 text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-rose-600 text-white shadow-lg shadow-rose-950/50">
                 <Sparkles className="w-3.5 h-3.5" /> Featured Spotlight
               </span>
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-zinc-800/90 text-zinc-300 border border-zinc-700">
-                {featured.year}
-              </span>
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                ★ {featured.rating.toFixed(1)}
-              </span>
+              {featured.year ? (
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-zinc-800/90 text-zinc-300 border border-zinc-700">
+                  {featured.year}
+                </span>
+              ) : null}
+              {typeof featured.rating === 'number' && !isNaN(featured.rating) && featured.rating > 0 ? (
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  ★ {Number(featured.rating).toFixed(1)}
+                </span>
+              ) : null}
             </div>
 
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-2 sm:mb-3">
               {featured.title}
             </h1>
 
-            <p className="text-xs sm:text-sm text-zinc-300 max-w-xl line-clamp-2 sm:line-clamp-3 mb-6">
-              {featured.description}
-            </p>
+            {featured.description && (
+              <p className="text-xs sm:text-sm text-zinc-300 max-w-xl line-clamp-2 sm:line-clamp-3 mb-6">
+                {featured.description}
+              </p>
+            )}
 
             <div className="flex flex-wrap items-center gap-3">
               <button

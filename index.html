@@ -18,20 +18,17 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for (var i = 0; i < registrations.length; i++) {
-            registrations[i].unregister();
-          }
-        });
-      }
-      if ('caches' in window) {
-        caches.keys().then(function(names) {
-          for (var i = 0; i < names.length; i++) {
-            caches.delete(names[i]);
-          }
-        });
-      }
+      try {
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            if (registrations && registrations.length) {
+              registrations.forEach(function(reg) {
+                try { reg.unregister(); } catch(e) {}
+              });
+            }
+          }).catch(function() {});
+        }
+      } catch (err) {}
     </script>
   </head>
   <body style="background-color: #09090b; color: #f4f4f5; margin: 0; padding: 0;">

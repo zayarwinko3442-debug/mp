@@ -31,16 +31,20 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Merge newly introduced initial posters (e.g. 2021 & 2022 series) with saved custom items
-          const savedIds = new Set(parsed.map((p: Poster) => p.id));
-          const newInitial = INITIAL_POSTERS.filter((p) => !savedIds.has(p.id));
-          return [...parsed, ...newInitial];
+          // Permanently purge any demo sample posters:
+          // Keep strictly custom uploads or Google Drive synced posters!
+          const userOnly = parsed.filter(
+            (p: Poster) =>
+              Boolean(p && typeof p === 'object' && p.id && p.title && p.imageUrl) &&
+              (p.isCustomUpload === true || Boolean(p.driveFileId) || Boolean(p.folderName))
+          );
+          return userOnly;
         }
       }
     } catch (e) {
-      console.error('Failed to load posters from localStorage:', e);
+      console.warn('Failed to load posters from localStorage:', e);
     }
-    return INITIAL_POSTERS;
+    return [];
   });
 
   // Auth state
@@ -50,7 +54,11 @@ export default function App() {
 
   // Admin & Viewer permissions state
   const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
-    return localStorage.getItem(ADMIN_STORAGE_KEY) === 'true';
+    try {
+      return localStorage.getItem(ADMIN_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
   });
   const [isVisitorPreview, setIsVisitorPreview] = useState<boolean>(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState<boolean>(false);
@@ -129,7 +137,9 @@ export default function App() {
         setAccessToken(token);
         if (currentUser?.email && OWNER_EMAILS.includes(currentUser.email.toLowerCase())) {
           setIsAdminUnlocked(true);
-          localStorage.setItem(ADMIN_STORAGE_KEY, 'true');
+          try {
+            localStorage.setItem(ADMIN_STORAGE_KEY, 'true');
+          } catch {}
         }
       },
       () => {
@@ -163,7 +173,9 @@ export default function App() {
         setAccessToken(result.accessToken);
         if (result.user.email && OWNER_EMAILS.includes(result.user.email.toLowerCase())) {
           setIsAdminUnlocked(true);
-          localStorage.setItem(ADMIN_STORAGE_KEY, 'true');
+          try {
+            localStorage.setItem(ADMIN_STORAGE_KEY, 'true');
+          } catch {}
           showToast(`👑 မင်္ဂလာပါ Owner (${result.user.email})! စီမံခန့်ခွဲသူမုဒ် ဖွင့်ထားပါပြီ။`, 'success');
         } else {
           showToast(`Google Drive ချိတ်ဆက်ပြီးပါပြီ (${result.user.email})`, 'success');
@@ -179,7 +191,9 @@ export default function App() {
   };
 
   const handleAdminLogout = () => {
-    localStorage.removeItem(ADMIN_STORAGE_KEY);
+    try {
+      localStorage.removeItem(ADMIN_STORAGE_KEY);
+    } catch {}
     setIsAdminUnlocked(false);
     setIsVisitorPreview(false);
     if (user) {
@@ -237,22 +251,6 @@ export default function App() {
       `Google Drive မှ ပုံ ${newPosters.length} ပုံအား သက်ဆိုင်ရာ ခုနှစ်အလိုက် အောင်မြင်စွာ သွင်းယူ/အဆင့်မြှင့်တင်ပြီးပါပြီ!`,
       'success'
     );
-  };
-
-  // Clear all default sample demo posters with 1-click
-  const handleClearSamplePosters = () => {
-    setPosters((prev) => prev.filter((p) => p.isCustomUpload));
-    showToast('မူလ Sample ပုံများအားလုံး ရှင်းထုတ်ပြီးပါပြီ။ သင်၏ Drive ပုံများသာ ကျန်ရှိပါမည်။', 'info');
-  };
-
-  // Restore default sample demo posters
-  const handleRestoreSamplePosters = () => {
-    setPosters((prev) => {
-      const existingIds = new Set(prev.map((p) => p.id));
-      const missingInitial = INITIAL_POSTERS.filter((p) => !existingIds.has(p.id));
-      return [...prev, ...missingInitial];
-    });
-    showToast('မူလ Sample ပုံများ ပြန်လည်ထည့်သွင်းပြီးပါပြီ။', 'success');
   };
 
   // Delete all posters from a specific imported folder
@@ -328,7 +326,6 @@ export default function App() {
   const movieCount = posters.filter((p) => p.type === 'movie').length;
   const seriesCount = posters.filter((p) => p.type === 'series').length;
   const driveSyncedCount = posters.filter((p) => !!p.driveFileId).length;
-  const sampleCount = posters.filter((p) => !p.isCustomUpload).length;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
@@ -420,27 +417,6 @@ export default function App() {
                   <Folder className="w-3.5 h-3.5 text-amber-400" />
                   <span>📁 Folder အလိုက် ပုံများ ပြန်ဖျက်ရန်</span>
                 </button>
-
-                {/* Quick action to Clear or Restore Sample demo posters */}
-                {sampleCount > 0 ? (
-                  <button
-                    id="btn-clear-sample-posters"
-                    onClick={handleClearSamplePosters}
-                    className="px-2 py-1 rounded bg-zinc-800 hover:bg-rose-950/60 hover:border-rose-800 border border-zinc-700 text-zinc-300 hover:text-rose-300 transition-colors"
-                    title="မူလပါဝင်သော Sample ပုံများအားလုံး ရှင်းထုတ်ပြီး သင်၏ Drive ပုံများသာ ထားရှိရန်"
-                  >
-                    🗑️ Sample ပုံများရှင်းထုတ်ရန် ({sampleCount})
-                  </button>
-                ) : (
-                  <button
-                    id="btn-restore-sample-posters"
-                    onClick={handleRestoreSamplePosters}
-                    className="px-2 py-1 rounded bg-zinc-800 hover:bg-emerald-950/60 hover:border-emerald-800 border border-zinc-700 text-zinc-300 hover:text-emerald-300 transition-colors"
-                    title="မူလ Sample ပုံများ ပြန်လည်ထည့်သွင်းရန်"
-                  >
-                    🔄 Demo Sample ပုံများ ပြန်ယူရန်
-                  </button>
-                )}
               </>
             )}
           </div>

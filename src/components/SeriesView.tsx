@@ -45,11 +45,15 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
       selectedYear === 'all' ||
       s.year === selectedYear;
     const matchesFolder = selectedFolder === 'all' || s.folderName === selectedFolder;
+    const q = search.toLowerCase();
+    const title = (s.title || '').toLowerCase();
+    const genre = (s.genre || '').toLowerCase();
+    const folder = (s.folderName || '').toLowerCase();
     const matchesSearch =
       !search.trim() ||
-      s.title.toLowerCase().includes(search.toLowerCase()) ||
-      s.genre.toLowerCase().includes(search.toLowerCase()) ||
-      (s.folderName && s.folderName.toLowerCase().includes(search.toLowerCase()));
+      title.includes(q) ||
+      genre.includes(q) ||
+      folder.includes(q);
     return matchesCountry && matchesYear && matchesFolder && matchesSearch;
   });
 

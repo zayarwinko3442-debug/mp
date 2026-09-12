@@ -42,11 +42,15 @@ export const MovieView: React.FC<MovieViewProps> = ({
       selectedYear === 'all' ||
       m.year === selectedYear;
     const matchesFolder = selectedFolder === 'all' || m.folderName === selectedFolder;
+    const q = search.toLowerCase();
+    const title = (m.title || '').toLowerCase();
+    const genre = (m.genre || '').toLowerCase();
+    const folder = (m.folderName || '').toLowerCase();
     const matchesSearch =
       !search.trim() ||
-      m.title.toLowerCase().includes(search.toLowerCase()) ||
-      m.genre.toLowerCase().includes(search.toLowerCase()) ||
-      (m.folderName && m.folderName.toLowerCase().includes(search.toLowerCase()));
+      title.includes(q) ||
+      genre.includes(q) ||
+      folder.includes(q);
     return matchesYear && matchesFolder && matchesSearch;
   });
 
