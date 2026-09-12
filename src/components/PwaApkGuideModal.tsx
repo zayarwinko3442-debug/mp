@@ -44,7 +44,7 @@ export const PwaApkGuideModal: React.FC<PwaApkGuideModalProps> = ({ isOpen, onCl
           <BrandLogo size="md" />
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">Mobile Perfect App</span>
+              <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">Movie Perfect App</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">Official APK Guide</span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-white leading-tight">

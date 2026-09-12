@@ -39,7 +39,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       >
         <img
           src="/logo.svg"
-          alt="Mobile Perfect Logo"
+          alt="Movie Perfect Logo"
           className="w-full h-full object-contain"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).src = '/logo.png';
@@ -58,7 +58,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         {!imgFailed ? (
           <img
             src="/logo-icon.svg"
-            alt="Mobile Perfect"
+            alt="Movie Perfect"
             className="w-full h-full object-contain"
             onError={() => setImgFailed(true)}
           />
@@ -85,7 +85,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       {showText && (
         <div className={`flex flex-col text-left ${textClassName}`}>
           <span className="text-base sm:text-lg font-black tracking-tight text-white leading-none">
-            Mobile Perfect
+            Movie Perfect
           </span>
           <span className="text-[10px] sm:text-[11px] font-semibold tracking-wider text-sky-400 uppercase mt-0.5">
             Movie & Series Vault

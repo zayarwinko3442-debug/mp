@@ -80,7 +80,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-700/90 shadow-md backdrop-blur-md">
                 <BrandLogo size="sm" />
-                <span className="text-xs font-bold text-white tracking-wide">Mobile Perfect</span>
+                <span className="text-xs font-bold text-white tracking-wide">Movie Perfect</span>
               </div>
               <span className="flex items-center gap-1 text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-rose-600 text-white shadow-lg shadow-rose-950/50">
                 <Sparkles className="w-3.5 h-3.5" /> Featured Spotlight

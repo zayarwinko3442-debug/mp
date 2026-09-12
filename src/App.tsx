@@ -16,10 +16,10 @@ import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { ManageFoldersModal } from './components/ManageFoldersModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { BrandLogo } from './components/BrandLogo';
-import { Film, Tv, UploadCloud, Smartphone, CheckCircle, AlertCircle, Folder, Eye, EyeOff } from 'lucide-react';
+import { Film, Tv, UploadCloud, Smartphone, CheckCircle, AlertCircle, Folder, Eye, EyeOff, Lock } from 'lucide-react';
 
 const STORAGE_KEY = 'movie_perfect_posters_v1';
-const OWNER_EMAIL = 'zayarwinko3442@gmail.com';
+const OWNER_EMAILS = ['movieperfect155@gmail.com', 'zayarwinko3442@gmail.com'];
 const ADMIN_STORAGE_KEY = 'movie_perfect_is_admin';
 
 export default function App() {
@@ -105,7 +105,7 @@ export default function App() {
   };
 
   // Determine owner & admin status
-  const isOwnerEmail = user?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
+  const isOwnerEmail = Boolean(user?.email && OWNER_EMAILS.includes(user.email.toLowerCase()));
   const isAdmin = isOwnerEmail || isAdminUnlocked;
   // Controls are only visible if user is admin AND not previewing as visitor
   const showAdminControls = isAdmin && !isVisitorPreview;
@@ -125,7 +125,7 @@ export default function App() {
       (currentUser, token) => {
         setUser(currentUser);
         setAccessToken(token);
-        if (currentUser?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
+        if (currentUser?.email && OWNER_EMAILS.includes(currentUser.email.toLowerCase())) {
           setIsAdminUnlocked(true);
           localStorage.setItem(ADMIN_STORAGE_KEY, 'true');
         }
@@ -140,6 +140,18 @@ export default function App() {
     };
   }, []);
 
+  // Listen for #admin or #/admin in URL hash for secret admin access
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#admin' || window.location.hash === '#/admin') {
+        setIsAdminLoginOpen(true);
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
@@ -147,7 +159,7 @@ export default function App() {
       if (result) {
         setUser(result.user);
         setAccessToken(result.accessToken);
-        if (result.user.email?.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
+        if (result.user.email && OWNER_EMAILS.includes(result.user.email.toLowerCase())) {
           setIsAdminUnlocked(true);
           localStorage.setItem(ADMIN_STORAGE_KEY, 'true');
           showToast(`👑 မင်္ဂလာပါ Owner (${result.user.email})! စီမံခန့်ခွဲသူမုဒ် ဖွင့်ထားပါပြီ။`, 'success');
@@ -344,7 +356,7 @@ export default function App() {
         <div className="mb-6 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-zinc-400">
             <BrandLogo size="sm" />
-            <span className="font-bold text-zinc-200">Mobile Perfect</span>
+            <span className="font-bold text-zinc-200">Movie Perfect</span>
             <span>/</span>
             <span className="text-sky-400 font-semibold capitalize">
               {activeTab === 'home' ? 'Home (🎬 Movie & 📺 Series)' : activeTab}
@@ -460,9 +472,18 @@ export default function App() {
           <div className="flex items-center gap-3">
             <BrandLogo size="sm" />
             <div className="flex items-center gap-2">
-              <span className="font-bold text-zinc-200">Mobile Perfect</span>
+              <span className="font-bold text-zinc-200">Movie Perfect</span>
               <span className="text-zinc-600">•</span>
               <span>Cinema & Series Poster Vault</span>
+              {/* Subtle Owner Login shortcut in footer */}
+              <button
+                id="btn-footer-admin-lock"
+                onClick={() => setIsAdminLoginOpen(true)}
+                className="opacity-20 hover:opacity-100 text-zinc-500 hover:text-amber-400 p-0.5 rounded transition-all ml-1"
+                title="Admin Login"
+              >
+                <Lock className="w-3 h-3" />
+              </button>
             </div>
           </div>
 

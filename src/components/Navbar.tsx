@@ -40,21 +40,45 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const showAdminControls = isAdmin && !isVisitorPreview;
 
+  // Secret 5-tap on logo to open admin login for the owner
+  const [logoClickCount, setLogoClickCount] = React.useState(0);
+  const logoTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleBrandLogoClick = () => {
+    setActiveTab('home');
+    if (isAdmin && !isVisitorPreview) return; // Already in full admin mode
+
+    setLogoClickCount((prev) => {
+      const next = prev + 1;
+      if (next >= 5) {
+        onOpenAdminLogin();
+        return 0;
+      }
+      return next;
+    });
+
+    if (logoTimerRef.current) clearTimeout(logoTimerRef.current);
+    logoTimerRef.current = setTimeout(() => {
+      setLogoClickCount(0);
+    }, 2500);
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800 text-zinc-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Brand Logo & Name */}
+          {/* Brand Logo & Name (With secret 5-tap admin trigger for owner) */}
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             <button
               id="brand-home-button"
-              onClick={() => setActiveTab('home')}
+              onClick={handleBrandLogoClick}
               className="flex items-center gap-2.5 sm:gap-3 text-left focus:outline-none group shrink-0"
+              title="Home"
             >
               <BrandLogo size="md" />
               <div className="flex flex-col">
                 <span className="text-base sm:text-xl font-black tracking-tight text-white flex items-center gap-1.5 leading-tight">
-                  Mobile Perfect
+                  Movie Perfect
                   <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
                     CINEMA
                   </span>
@@ -177,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Admin / Owner status & Login */}
-            {showAdminControls ? (
+            {showAdminControls && (
               <div className="flex items-center gap-2 pl-1 border-l border-zinc-800">
                 <div className="hidden lg:flex flex-col items-end">
                   <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
@@ -197,18 +221,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              !isVisitorPreview && (
-                <button
-                  id="btn-open-admin-login"
-                  onClick={onOpenAdminLogin}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 transition-colors"
-                  title="စီမံခန့်ခွဲသူ ဝင်ရောက်ရန် (Admin Login)"
-                >
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline">Admin</span>
-                </button>
-              )
             )}
           </div>
         </div>
