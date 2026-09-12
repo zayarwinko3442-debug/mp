@@ -170,6 +170,7 @@ export default function App() {
     } catch (error: any) {
       console.error('Login error:', error);
       showToast(error.message || 'Google Drive sign in failed.', 'error');
+      throw error;
     } finally {
       setIsLoggingIn(false);
     }

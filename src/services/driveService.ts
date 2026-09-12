@@ -613,6 +613,33 @@ export async function makeDriveFilesPublic(fileIds: string[], accessToken: strin
 }
 
 /**
+ * Extract Google Drive file or folder ID from various Drive URL formats or plain ID
+ */
+export function extractDriveIdFromUrl(urlOrId: string): string | null {
+  if (!urlOrId || typeof urlOrId !== 'string') return null;
+  const trimmed = urlOrId.trim();
+
+  // If already a raw ID without slashes
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // /file/d/ID
+  const fileMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch && fileMatch[1]) return fileMatch[1];
+
+  // /folders/ID
+  const folderMatch = trimmed.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (folderMatch && folderMatch[1]) return folderMatch[1];
+
+  // ?id=ID or &id=ID
+  const idParamMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idParamMatch && idParamMatch[1]) return idParamMatch[1];
+
+  return null;
+}
+
+/**
  * Delete a file from Google Drive (Mandatory user confirmation handled by caller)
  */
 export async function deleteDriveFile(fileId: string, accessToken: string): Promise<void> {

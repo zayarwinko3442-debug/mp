@@ -21,7 +21,7 @@ const TOKEN_KEY = 'mp_drive_access_token';
 let isSigningIn = false;
 let cachedAccessToken: string | null = (() => {
   try {
-    return sessionStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
   } catch {
     return null;
   }
@@ -31,6 +31,7 @@ let cachedAccessToken: string | null = (() => {
 export const clearCachedAccessToken = () => {
   cachedAccessToken = null;
   try {
+    localStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_KEY);
   } catch {}
 };
@@ -51,6 +52,7 @@ export const initAuth = (
     } else {
       cachedAccessToken = null;
       try {
+        localStorage.removeItem(TOKEN_KEY);
         sessionStorage.removeItem(TOKEN_KEY);
       } catch {}
       if (onAuthFailure) onAuthFailure();
@@ -65,17 +67,31 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     if (!credential?.accessToken) {
-      throw new Error('Google Drive access token could not be obtained.');
+      throw new Error('Google Drive access token could not be obtained. ကျေးဇူးပြု၍ Drive permissions များကို ခွင့်ပြုပေးပါ။');
     }
 
     cachedAccessToken = credential.accessToken;
     try {
+      localStorage.setItem(TOKEN_KEY, cachedAccessToken);
       sessionStorage.setItem(TOKEN_KEY, cachedAccessToken);
     } catch {}
 
     return { user: result.user, accessToken: cachedAccessToken };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Sign in error:', error);
+    const code = error?.code || '';
+    if (code === 'auth/unauthorized-domain') {
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'Netlify';
+      throw new Error(
+        `Firebase Unauthorized Domain Error: လက်ရှိ domain "${currentHost}" ကို Firebase Console -> Authentication -> Settings -> Authorized domains တွင် ထည့်သွင်းပေးရန် လိုအပ်ပါသည်ခင်ဗျာ။`
+      );
+    }
+    if (code === 'auth/popup-blocked') {
+      throw new Error('Browser မှ Pop-up ကို ပိတ်ထားသဖြင့် Google Login ဖွင့်၍မရပါ။ ကျေးဇူးပြု၍ Pop-up ခွင့်ပြုပေးပါ။');
+    }
+    if (code === 'auth/popup-closed-by-user') {
+      throw new Error('Google Sign-In Pop-up ကို ပိတ်လိုက်သဖြင့် မအောင်မြင်ခဲ့ပါ။ ပြန်လည်ကြိုးစားပေးပါ။');
+    }
     throw error;
   } finally {
     isSigningIn = false;
