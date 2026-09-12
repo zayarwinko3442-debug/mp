@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { ActiveTab, Poster } from './types';
+import { ActiveTab, Poster, MediaType, SeriesCountry } from './types';
 import { INITIAL_POSTERS } from './data/initialPosters';
 import { initAuth, googleSignIn, logout, getAccessToken } from './services/firebase';
 import { deleteDriveFile } from './services/driveService';
@@ -30,7 +30,10 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed;
+          // Merge newly introduced initial posters (e.g. 2021 & 2022 series) with saved custom items
+          const savedIds = new Set(parsed.map((p: Poster) => p.id));
+          const newInitial = INITIAL_POSTERS.filter((p) => !savedIds.has(p.id));
+          return [...parsed, ...newInitial];
         }
       }
     } catch (e) {
@@ -54,6 +57,31 @@ export default function App() {
   // Modals state
   const [selectedPoster, setSelectedPoster] = useState<Poster | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [uploadDefaults, setUploadDefaults] = useState<{
+    type: MediaType;
+    country?: SeriesCountry;
+    year?: number;
+  }>({
+    type: 'movie',
+    country: 'Korea',
+    year: 2026,
+  });
+
+  const handleOpenUploadWithDefaults = (defaults?: {
+    type?: MediaType;
+    country?: SeriesCountry;
+    year?: number;
+  }) => {
+    if (defaults) {
+      setUploadDefaults({
+        type: defaults.type || 'series',
+        country: defaults.country || 'Korea',
+        year: defaults.year || 2026,
+      });
+    }
+    setIsUploadOpen(true);
+  };
+
   const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
   const [isApkGuideOpen, setIsApkGuideOpen] = useState(false);
 
@@ -405,7 +433,7 @@ export default function App() {
           <SeriesView
             posters={posters}
             onSelectPoster={(p) => setSelectedPoster(p)}
-            onOpenUpload={() => setIsUploadOpen(true)}
+            onOpenUpload={handleOpenUploadWithDefaults}
             onDeletePoster={showAdminControls ? handleRequestDelete : undefined}
             isAdmin={showAdminControls}
           />
@@ -475,9 +503,13 @@ export default function App() {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onSavePoster={handleSavePoster}
+        onBatchSavePosters={handleBatchJoinPosters}
         user={user}
         accessToken={accessToken}
         onConnectDrive={handleLogin}
+        initialType={uploadDefaults.type}
+        initialCountry={uploadDefaults.country}
+        initialYear={uploadDefaults.year}
       />
 
       <DrivePickerModal

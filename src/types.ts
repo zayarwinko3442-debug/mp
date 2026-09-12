@@ -1,7 +1,7 @@
 export type MediaType = 'movie' | 'series';
 
 export type MovieYear = 2021 | 2022 | 2023 | 2024 | 2025 | 2026;
-export type SeriesYear = 2023 | 2024 | 2025 | 2026;
+export type SeriesYear = 2021 | 2022 | 2023 | 2024 | 2025 | 2026;
 
 export type SeriesCountry = 'Korea' | 'Thai' | 'China' | 'English' | 'Bollywood';
 
@@ -9,10 +9,10 @@ export interface Poster {
   id: string;
   title: string;
   type: MediaType;
-  year: number;
+  year?: number;
   country?: SeriesCountry;
   genre: string;
-  rating: number; // e.g. 8.5
+  rating?: number; // e.g. 8.5 (for movies)
   imageUrl: string;
   thumbnailUrl?: string;
   driveFileId?: string;
@@ -40,7 +40,7 @@ export interface DriveFile {
 export interface DriveFolderGroup {
   folderId: string;
   folderName: string;
-  detectedYear: MovieYear | SeriesYear;
+  detectedYear?: MovieYear | SeriesYear;
   detectedType: MediaType;
   detectedCountry?: SeriesCountry;
   files: DriveFile[];

@@ -241,7 +241,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 📺 Series Posters
               </h2>
               <p className="text-xs text-zinc-400">
-                Korea, Thai, China, English, Bollywood (2023 – 2026) ({series.length})
+                Korea, Thai, China, English, Bollywood (2021 – 2026) ({series.length})
               </p>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tv, Globe, Calendar, Search, UploadCloud, Folder, ArrowUpDown, Hash, LayoutGrid, Grid } from 'lucide-react';
+import { Tv, Globe, Search, UploadCloud, Folder, ArrowUpDown, Calendar, LayoutGrid, Grid, Hash } from 'lucide-react';
 import { Poster, SeriesCountry, SeriesYear } from '../types';
 import { PosterCard } from './PosterCard';
 import { SortMode, sortPosters } from '../utils/sortUtils';
@@ -7,13 +7,13 @@ import { SortMode, sortPosters } from '../utils/sortUtils';
 interface SeriesViewProps {
   posters: Poster[];
   onSelectPoster: (poster: Poster) => void;
-  onOpenUpload: () => void;
+  onOpenUpload: (defaults?: { type?: 'series'; country?: SeriesCountry; year?: number }) => void;
   onDeletePoster: (poster: Poster) => void;
   isAdmin?: boolean;
 }
 
 const SERIES_COUNTRIES: SeriesCountry[] = ['Korea', 'Thai', 'China', 'English', 'Bollywood'];
-const SERIES_YEARS: SeriesYear[] = [2026, 2025, 2024, 2023];
+const SERIES_YEARS: SeriesYear[] = [2026, 2025, 2024, 2023, 2022, 2021];
 
 export const SeriesView: React.FC<SeriesViewProps> = ({
   posters,
@@ -39,7 +39,11 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
 
   const filteredSeries = series.filter((s) => {
     const matchesCountry = selectedCountry === 'all' || s.country === selectedCountry;
-    const matchesYear = selectedYear === 'all' || s.year === selectedYear;
+    // If a folder is selected, show all folder series regardless of year
+    const matchesYear =
+      selectedFolder !== 'all' ||
+      selectedYear === 'all' ||
+      s.year === selectedYear;
     const matchesFolder = selectedFolder === 'all' || s.folderName === selectedFolder;
     const matchesSearch =
       !search.trim() ||
@@ -66,7 +70,7 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
             </h1>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Explore Asian & International Dramas (Korea, Thai, China, English, Bollywood) & Years (2023 – 2026)
+            Explore Asian & International Dramas (Korea, Thai, China, English, Bollywood) • 2021 – 2026
           </p>
         </div>
 
@@ -98,7 +102,7 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
                 🔢 နံပါတ် အစဉ်လိုက် (1, 2, 3... 10)
               </option>
               <option value="year-desc" className="bg-zinc-900 text-white">
-                📅 ခုနှစ် (၂၀၂၆ → ၂၀၂၃)
+                📅 ခုနှစ် (၂၀၂၆ → ၂၀၂၁)
               </option>
               <option value="rating-desc" className="bg-zinc-900 text-white">
                 ★ Rating အမြင့်ဆုံး
@@ -144,50 +148,75 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
         </div>
       </div>
 
-      {/* Dual Filter Section: Countries and Years */}
-      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
-        {/* Country Filter (Korea, Thai, China, English, Bollywood) */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 mr-2 flex items-center gap-1.5 shrink-0">
-            <Globe className="w-3.5 h-3.5 text-emerald-400" />
-            Region / Origin:
-          </span>
+      {/* Region / Origin & 2021-2026 Year Selection Tabs Section */}
+      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3.5">
+        {/* Country / Region Tabs (Korea, Thai, China, English, Bollywood) & Upload Button */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 mr-2 flex items-center gap-1.5 shrink-0">
+              <Globe className="w-3.5 h-3.5 text-emerald-400" />
+              Region / Origin:
+            </span>
 
-          <button
-            id="btn-series-country-all"
-            onClick={() => setSelectedCountry('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-              selectedCountry === 'all'
-                ? 'bg-emerald-500 text-zinc-950 font-black shadow-md shadow-emerald-950/40'
-                : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/60'
-            }`}
-          >
-            All Regions ({series.length})
-          </button>
+            <button
+              id="btn-series-country-all"
+              onClick={() => setSelectedCountry('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                selectedCountry === 'all'
+                  ? 'bg-emerald-500 text-zinc-950 font-black shadow-md shadow-emerald-950/40'
+                  : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/60'
+              }`}
+            >
+              All Regions ({series.length})
+            </button>
 
-          {SERIES_COUNTRIES.map((c) => {
-            const count = series.filter((s) => s.country === c).length;
-            return (
-              <button
-                key={c}
-                id={`btn-series-country-${c.toLowerCase()}`}
-                onClick={() => setSelectedCountry(c)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  selectedCountry === c
-                    ? 'bg-emerald-500 text-zinc-950 font-black shadow-md shadow-emerald-950/40'
-                    : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/60'
-                }`}
-              >
-                {c} {count > 0 && <span className="opacity-70 text-[10px]">({count})</span>}
-              </button>
-            );
-          })}
+            {SERIES_COUNTRIES.map((c) => {
+              const count = series.filter((s) => s.country === c).length;
+              return (
+                <button
+                  key={c}
+                  id={`btn-series-country-${c.toLowerCase()}`}
+                  onClick={() => setSelectedCountry(c)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedCountry === c
+                      ? 'bg-emerald-500 text-zinc-950 font-black shadow-md shadow-emerald-950/40'
+                      : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/60'
+                  }`}
+                >
+                  {c} {count > 0 && <span className="opacity-70 text-[10px]">({count})</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Direct Upload Series Button for selected Region and Year */}
+          {isAdmin && (
+            <button
+              type="button"
+              id="btn-series-region-upload-tab"
+              onClick={() =>
+                onOpenUpload({
+                  type: 'series',
+                  country: selectedCountry !== 'all' ? selectedCountry : 'Korea',
+                  year: selectedYear !== 'all' ? selectedYear : 2026,
+                })
+              }
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-950/50 transition-all active:scale-95 border border-emerald-400/30 shrink-0"
+              title="Upload Series into this Region & Year"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>
+                + Upload {selectedCountry !== 'all' ? selectedCountry : ''} Series{' '}
+                {selectedYear !== 'all' ? `[${selectedYear}]` : ''}
+              </span>
+            </button>
+          )}
         </div>
 
-        {/* Year Filter (2023 - 2026) */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-zinc-800">
+        {/* 2021 - 2026 Release Year Tabs (Kept as requested) */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-zinc-800/80">
           <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 mr-2 flex items-center gap-1.5 shrink-0">
-            <Calendar className="w-3.5 h-3.5 text-sky-400" />
+            <Calendar className="w-3.5 h-3.5 text-amber-400" />
             Release Year:
           </span>
 
@@ -196,11 +225,11 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
             onClick={() => setSelectedYear('all')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
               selectedYear === 'all'
-                ? 'bg-sky-500 text-zinc-950 font-black shadow-md shadow-sky-950/40'
+                ? 'bg-amber-500 text-zinc-950 font-black shadow-md shadow-amber-950/40'
                 : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/60'
             }`}
           >
-            All Years
+            All Years ({selectedCountry === 'all' ? series.length : series.filter((s) => s.country === selectedCountry).length})
           </button>
 
           {SERIES_YEARS.map((yr) => {
@@ -214,7 +243,7 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
                 onClick={() => setSelectedYear(yr)}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   selectedYear === yr
-                    ? 'bg-sky-500 text-zinc-950 font-black shadow-md shadow-sky-950/40'
+                    ? 'bg-amber-500 text-zinc-950 font-black shadow-md shadow-amber-950/40'
                     : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/60'
                 }`}
               >
@@ -271,8 +300,7 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
         <span className="flex items-center gap-2">
           <span>
             Showing <strong>{sortedSeries.length}</strong> series{' '}
-            {selectedCountry !== 'all' ? `(${selectedCountry})` : ''}{' '}
-            {selectedYear !== 'all' ? `[${selectedYear}]` : ''}
+            {selectedCountry !== 'all' ? `(${selectedCountry})` : ''}
             {selectedFolder !== 'all' ? ` in folder "${selectedFolder}"` : ''}
           </span>
           {sortMode === 'numeric' && (
@@ -284,7 +312,12 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
         {isAdmin && (
           <button
             id="btn-add-series-poster"
-            onClick={onOpenUpload}
+            onClick={() =>
+              onOpenUpload({
+                type: 'series',
+                country: selectedCountry !== 'all' ? selectedCountry : 'Korea',
+              })
+            }
             className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-semibold"
           >
             <UploadCloud className="w-3.5 h-3.5" />
@@ -299,12 +332,16 @@ export const SeriesView: React.FC<SeriesViewProps> = ({
           <Tv className="w-12 h-12 text-zinc-600 mx-auto mb-3" />
           <h3 className="text-sm font-bold text-zinc-200">No Series Found</h3>
           <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-            No series poster matches {selectedCountry !== 'all' ? `"${selectedCountry}"` : ''}{' '}
-            {selectedYear !== 'all' ? `in ${selectedYear}` : ''}.
+            No series poster found in {selectedCountry !== 'all' ? `"${selectedCountry}"` : 'the catalog'}.
           </p>
           {isAdmin && (
             <button
-              onClick={onOpenUpload}
+              onClick={() =>
+                onOpenUpload({
+                  type: 'series',
+                  country: selectedCountry !== 'all' ? selectedCountry : 'Korea',
+                })
+              }
               className="mt-4 px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500"
             >
               Upload Series Poster

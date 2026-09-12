@@ -113,9 +113,15 @@ const PosterDetailModalContent: React.FC<{
 
   // Clean description to avoid leaking internal Drive technical details
   const cleanDescription = () => {
-    if (!poster.description) return `${poster.title} (${poster.year}) full resolution poster.`;
+    if (!poster.description) {
+      return poster.type === 'movie' && poster.year
+        ? `${poster.title} (${poster.year}) full resolution poster.`
+        : `${poster.title} full resolution poster.`;
+    }
     if (poster.description.includes('Google Drive') || poster.description.includes('Auto-imported')) {
-      return `${poster.title} (${poster.year}) - Cinema High-Definition Poster.`;
+      return poster.type === 'movie' && poster.year
+        ? `${poster.title} (${poster.year}) - Cinema High-Definition Poster.`
+        : `${poster.title} - High-Definition Series Poster.`;
     }
     return poster.description;
   };
@@ -260,10 +266,12 @@ const PosterDetailModalContent: React.FC<{
                   {poster.type === 'movie' ? 'Movie' : 'Series'}
                 </span>
 
-                <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700">
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                  {poster.year}
-                </span>
+                {poster.year && (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700">
+                    <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                    {poster.year}
+                  </span>
+                )}
 
                 {poster.country && (
                   <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
@@ -287,11 +295,13 @@ const PosterDetailModalContent: React.FC<{
 
               {/* Rating & Genre */}
               <div className="flex items-center gap-5 pb-5 border-b border-zinc-800">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold">
-                  <Star className="w-4 h-4 fill-amber-400" />
-                  <span className="text-lg">{poster.rating.toFixed(1)}</span>
-                  <span className="text-xs text-amber-400/70 font-normal">/ 10</span>
-                </div>
+                {typeof poster.rating === 'number' && poster.rating > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold">
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <span className="text-lg">{poster.rating.toFixed(1)}</span>
+                    <span className="text-xs text-amber-400/70 font-normal">/ 10</span>
+                  </div>
+                )}
                 <div>
                   <span className="text-xs text-zinc-400 block">Genre / အမျိုးအစား</span>
                   <span className="text-sm text-zinc-200 font-semibold">{poster.genre}</span>

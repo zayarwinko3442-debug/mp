@@ -34,7 +34,7 @@ interface DrivePickerModalProps {
 }
 
 const MOVIE_YEARS: MovieYear[] = [2026, 2025, 2024, 2023, 2022, 2021];
-const SERIES_YEARS: SeriesYear[] = [2026, 2025, 2024, 2023];
+const SERIES_YEARS: SeriesYear[] = [2026, 2025, 2024, 2023, 2022, 2021];
 const SERIES_COUNTRIES: SeriesCountry[] = ['Korea', 'Thai', 'China', 'English', 'Bollywood'];
 
 export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
@@ -150,7 +150,7 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
   const updateFolderConfig = (
     folderId: string,
     updates: Partial<{
-      detectedYear: MovieYear | SeriesYear;
+      detectedYear?: MovieYear | SeriesYear;
       detectedType: MediaType;
       detectedCountry: SeriesCountry;
     }>
@@ -168,7 +168,11 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
     }
 
     setIsImporting(true);
-    setImportStatus(`Importing ${group.files.length} photos from "${group.folderName}" into Year ${group.detectedYear}...`);
+    setImportStatus(
+      `Importing ${group.files.length} photos from "${group.folderName}"${
+        group.detectedYear ? ` (Year ${group.detectedYear})` : ''
+      }...`
+    );
 
     try {
       const sortedFiles = [...group.files].sort((a, b) =>
@@ -530,14 +534,17 @@ export const DrivePickerModal: React.FC<DrivePickerModalProps> = ({
 
                             {/* Year Selector */}
                             <select
-                              value={group.detectedYear}
+                              value={group.detectedYear ?? ''}
                               onChange={(e) =>
                                 updateFolderConfig(group.folderId, {
-                                  detectedYear: Number(e.target.value) as MovieYear,
+                                  detectedYear: e.target.value
+                                    ? (Number(e.target.value) as MovieYear)
+                                    : undefined,
                                 })
                               }
                               className="px-2.5 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-xs text-white font-medium focus:outline-none"
                             >
+                              <option value="">ခုနှစ် မထည့်ပါ (No Year)</option>
                               {group.detectedType === 'movie'
                                 ? MOVIE_YEARS.map((yr) => (
                                     <option key={yr} value={yr}>

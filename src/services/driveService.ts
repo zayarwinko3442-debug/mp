@@ -5,7 +5,7 @@ const FOLDER_NAME = 'Movie Perfect Posters';
 /**
  * Intelligent Year detector from folder name or file name or date
  */
-export function detectYear(name: string, dateStr?: string): MovieYear | SeriesYear {
+export function detectYear(name: string): MovieYear | SeriesYear | undefined {
   // Convert Burmese numerals if present: ၂၀၂၁ -> 2021, etc.
   const burmeseMap: Record<string, string> = {
     '၀': '0', '၁': '1', '၂': '2', '၃': '3', '၄': '4',
@@ -27,29 +27,18 @@ export function detectYear(name: string, dateStr?: string): MovieYear | SeriesYe
     if (yr >= 2021 && yr <= 2026) return yr as MovieYear;
   }
 
-  // Try fallback to createdTime date
-  if (dateStr) {
-    const dateYear = new Date(dateStr).getFullYear();
-    if (dateYear >= 2021 && dateYear <= 2026) return dateYear as MovieYear;
-  }
-
-  // Default to 2026
-  return 2026;
+  // If no explicit year is detected in folder/file name, return undefined (do not force into 2026)
+  return undefined;
 }
 
 /**
  * Intelligent MediaType & Series Country detector
  */
-export function detectCategoryAndCountry(name: string, year: number): {
+export function detectCategoryAndCountry(name: string, year?: number): {
   type: MediaType;
   country?: SeriesCountry;
 } {
   const lower = name.toLowerCase();
-
-  // If year is 2021 or 2022, Series only supports 2023-2026, so default to movie
-  if (year === 2021 || year === 2022) {
-    return { type: 'movie' };
-  }
 
   // Detect Series country keywords
   if (lower.includes('korea') || lower.includes('kdrama') || lower.includes('k-drama')) {
@@ -494,32 +483,34 @@ export async function fetchDriveFoldersAndImages(
       processedFolderIds.add(folderId);
     });
 
-    // If there are ungrouped images (stored in root of Drive), group them by detected year
+    // If there are ungrouped images (stored in root of Drive), group them by detected year if any
     if (ungroupedImages.length > 0) {
-      const ungroupedByYear = new Map<number, DriveFile[]>();
+      const ungroupedByYear = new Map<string, DriveFile[]>();
       ungroupedImages.forEach((img) => {
-        const yr = detectYear(img.name, img.createdTime);
-        const list = ungroupedByYear.get(yr) || [];
+        const yr = detectYear(img.name);
+        const key = yr ? String(yr) : 'uncategorized';
+        const list = ungroupedByYear.get(key) || [];
         list.push(img);
-        ungroupedByYear.set(yr, list);
+        ungroupedByYear.set(key, list);
       });
 
-      ungroupedByYear.forEach((files, yr) => {
+      ungroupedByYear.forEach((files, key) => {
         files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+        const isYear = key !== 'uncategorized';
         folderGroups.push({
-          folderId: `ungrouped-${yr}`,
-          folderName: `Drive Root (${yr} Posters)`,
-          detectedYear: yr as MovieYear,
+          folderId: `ungrouped-${key}`,
+          folderName: isYear ? `Drive Root (${key} Posters)` : 'Drive Root (Uncategorized Photos)',
+          detectedYear: isYear ? (Number(key) as MovieYear) : undefined,
           detectedType: 'movie',
           files,
         });
       });
     }
 
-    // Sort folder groups by year descending, then by file count descending
+    // Sort folder groups by file count descending, then by year descending
     folderGroups.sort((a, b) => {
       if (b.files.length !== a.files.length) return b.files.length - a.files.length;
-      return b.detectedYear - a.detectedYear;
+      return (b.detectedYear || 0) - (a.detectedYear || 0);
     });
 
     return {
@@ -538,8 +529,8 @@ export async function fetchDriveFoldersAndImages(
  */
 export function createPosterFromDriveFile(
   file: DriveFile,
-  year: number,
-  type: MediaType,
+  year?: number,
+  type: MediaType = 'movie',
   country?: SeriesCountry,
   folderName?: string,
   orderIndex?: number
@@ -548,15 +539,16 @@ export function createPosterFromDriveFile(
   const displayUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w1200`;
   const secondaryUrl = file.thumbnailLink ? file.thumbnailLink.replace(/=s\d+/, '=s1200') : `https://lh3.googleusercontent.com/d/${file.id}`;
   const title = cleanTitleFromFilename(file.name);
+  const validYear = year && year >= 2021 && year <= 2026 ? year : undefined;
 
   return {
     id: `drive-${file.id}`,
     title,
     type,
-    year,
+    year: validYear,
     country: type === 'series' ? country || 'Korea' : undefined,
     genre: type === 'movie' ? 'Cinema / Feature' : 'Series / Drama',
-    rating: 8.5,
+    rating: undefined, // Folder import does NOT assign rating
     imageUrl: displayUrl,
     thumbnailUrl: secondaryUrl,
     driveFileId: file.id,
@@ -564,7 +556,9 @@ export function createPosterFromDriveFile(
     folderName: folderName,
     originalFileName: file.name,
     orderIndex: orderIndex,
-    description: `${title} (${year}) - ${type === 'movie' ? 'Cinema Feature Poster' : `${country || 'Asian'} Series Drama Poster`}.`,
+    description: validYear
+      ? `${title} (${validYear}) - ${type === 'movie' ? 'Cinema Feature Poster' : `${country || 'Asian'} Series Drama Poster`}.`
+      : `${title} - ${type === 'movie' ? 'Cinema Feature Poster' : `${country || 'Asian'} Series Drama Poster`}.`,
     addedAt: file.createdTime || new Date().toISOString(),
     isCustomUpload: true,
   };

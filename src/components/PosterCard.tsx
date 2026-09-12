@@ -84,21 +84,31 @@ export const PosterCard: React.FC<PosterCardProps> = ({
               <Tv className="w-10 h-10 text-emerald-500/60 mb-2" />
             )}
             <p className="text-sm font-bold text-zinc-200 line-clamp-2 px-1">{poster.title}</p>
-            <span className="text-xs text-zinc-500 mt-1">{poster.year}</span>
+            {poster.type === 'movie' && poster.year ? (
+              <span className="text-xs text-zinc-500 mt-1">{poster.year}</span>
+            ) : poster.country ? (
+              <span className="text-xs text-emerald-400 mt-1 font-semibold">{poster.country} Series</span>
+            ) : null}
           </div>
         )}
 
-        {/* Top Badges */}
-        <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between gap-1 pointer-events-none">
-          <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-lg bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/30 shadow-md">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            {poster.rating.toFixed(1)}
-          </span>
+        {/* Top Badges: Rating (if set) and Year (if set) */}
+        {(Boolean(poster.rating && poster.rating > 0) || Boolean(poster.year)) && (
+          <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between gap-1 pointer-events-none">
+            {typeof poster.rating === 'number' && poster.rating > 0 ? (
+              <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-lg bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/30 shadow-md">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                {poster.rating.toFixed(1)}
+              </span>
+            ) : <span />}
 
-          <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-zinc-900/90 backdrop-blur-md text-zinc-200 border border-zinc-700 shadow-md">
-            {poster.year}
-          </span>
-        </div>
+            {poster.year ? (
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-zinc-900/90 backdrop-blur-md text-zinc-200 border border-zinc-700 shadow-md">
+                {poster.year}
+              </span>
+            ) : null}
+          </div>
+        )}
 
         {/* Series Country Badge */}
         {poster.country && (

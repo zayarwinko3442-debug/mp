@@ -37,7 +37,10 @@ export const MovieView: React.FC<MovieViewProps> = ({
 
   // Filter movies
   const filtered = movies.filter((m) => {
-    const matchesYear = selectedYear === 'all' || m.year === selectedYear;
+    const matchesYear =
+      selectedFolder !== 'all' ||
+      selectedYear === 'all' ||
+      m.year === selectedYear;
     const matchesFolder = selectedFolder === 'all' || m.folderName === selectedFolder;
     const matchesSearch =
       !search.trim() ||
