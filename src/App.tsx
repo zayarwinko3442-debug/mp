@@ -15,8 +15,9 @@ import { PwaApkGuideModal } from './components/PwaApkGuideModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { ManageFoldersModal } from './components/ManageFoldersModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { SyncCatalogModal } from './components/SyncCatalogModal';
 import { BrandLogo } from './components/BrandLogo';
-import { Film, Tv, Home, UploadCloud, Smartphone, CheckCircle, AlertCircle, Folder, Eye, EyeOff, Lock } from 'lucide-react';
+import { Film, Tv, Home, UploadCloud, Smartphone, CheckCircle, AlertCircle, Folder, Eye, EyeOff, Lock, RefreshCw } from 'lucide-react';
 
 const STORAGE_KEY = 'movie_perfect_posters_v1';
 const OWNER_EMAILS = ['movieperfect155@gmail.com', 'zayarwinko3442@gmail.com'];
@@ -84,6 +85,7 @@ export default function App() {
 
   const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
   const [isApkGuideOpen, setIsApkGuideOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   // Delete modal state
   const [posterToDelete, setPosterToDelete] = useState<Poster | null>(null);
@@ -277,6 +279,20 @@ export default function App() {
     showToast('Google Drive မှ သွင်းထားသော ပုံများ အားလုံး ရှင်းထုတ်ပြီးပါပြီ။', 'info');
   };
 
+  // Import / Sync catalog from another device (e.g. Phone to Tablet)
+  const handleImportCatalog = (importedPosters: Poster[], replaceAll = false) => {
+    if (replaceAll) {
+      setPosters(importedPosters);
+    } else {
+      setPosters((prev) => {
+        const existingMap = new Map<string, Poster>();
+        prev.forEach((p) => existingMap.set(p.id, p));
+        importedPosters.forEach((p) => existingMap.set(p.id, p));
+        return Array.from(existingMap.values());
+      });
+    }
+  };
+
   // Request deletion with confirmation
   const handleRequestDelete = (poster: Poster) => {
     setPosterToDelete(poster);
@@ -327,6 +343,7 @@ export default function App() {
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenDrivePicker={() => setIsDrivePickerOpen(true)}
         onOpenApkGuide={() => setIsApkGuideOpen(true)}
+        onOpenSyncModal={() => setIsSyncModalOpen(true)}
         isAdmin={isAdmin}
         isVisitorPreview={isVisitorPreview}
         onToggleVisitorPreview={() => setIsVisitorPreview((prev) => !prev)}
@@ -382,6 +399,17 @@ export default function App() {
             {/* ONLY ADMIN CAN MANAGE OR DELETE FOLDERS & SAMPLE DATA */}
             {showAdminControls && (
               <>
+                {/* Cross-Device Sync button (Phone to Tablet) */}
+                <button
+                  id="btn-open-sync-catalog"
+                  onClick={() => setIsSyncModalOpen(true)}
+                  className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-sky-950/60 hover:border-sky-700 border border-zinc-700 text-zinc-300 hover:text-sky-300 flex items-center gap-1.5 transition-colors"
+                  title="ဖုန်းတွင် တင်ထားသော ပုံများကို တက်ပလက်သို့ ကူးယူရန် (Cross-Device Sync)"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-sky-400" />
+                  <span>📲 တက်ပလက်သို့ ပုံများကူးရန် (Sync)</span>
+                </button>
+
                 {/* Button to manage / delete posters by folder or year */}
                 <button
                   id="btn-open-manage-folders"
@@ -618,6 +646,14 @@ export default function App() {
         onDeleteByFolder={handleDeleteByFolder}
         onDeleteByYear={handleDeleteByYear}
         onDeleteAllDrivePosters={handleDeleteAllDrivePosters}
+      />
+
+      <SyncCatalogModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        posters={posters}
+        onImportPosters={handleImportCatalog}
+        showToast={showToast}
       />
 
       {/* Admin Unlock Modal */}

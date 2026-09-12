@@ -1,5 +1,5 @@
 import React from 'react';
-import { Film, Tv, Home as HomeIcon, UploadCloud, FolderSync, Smartphone, LogIn, LogOut, CheckCircle2, ShieldCheck, Lock, Eye, EyeOff } from 'lucide-react';
+import { Film, Tv, Home as HomeIcon, UploadCloud, FolderSync, Smartphone, LogIn, LogOut, CheckCircle2, ShieldCheck, Lock, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { ActiveTab } from '../types';
 import { User } from 'firebase/auth';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -15,6 +15,7 @@ interface NavbarProps {
   onOpenUpload: () => void;
   onOpenDrivePicker: () => void;
   onOpenApkGuide: () => void;
+  onOpenSyncModal: () => void;
   isAdmin: boolean;
   isVisitorPreview: boolean;
   onToggleVisitorPreview: () => void;
@@ -32,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenUpload,
   onOpenDrivePicker,
   onOpenApkGuide,
+  onOpenSyncModal,
   isAdmin,
   isVisitorPreview,
   onToggleVisitorPreview,
@@ -183,7 +185,42 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Eye className="w-3.5 h-3.5 text-amber-400" />
                   <span>ဧည့်သည်အမြင် စမ်းကြည့်ရန်</span>
                 </button>
+
+                {/* Cross-Device Sync button */}
+                <button
+                  id="btn-nav-sync"
+                  onClick={onOpenSyncModal}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-sky-950/60 hover:bg-sky-900/80 text-sky-200 border border-sky-800/60 transition-colors"
+                  title="ဖုန်းနှင့် တက်ပလက် အချင်းချင်း ပုံများ ကူးယူရန် (Cross-Device Sync)"
+                >
+                  <RefreshCw className="w-4 h-4 text-sky-400" />
+                  <span className="hidden lg:inline">Sync</span>
+                </button>
               </>
+            )}
+
+            {/* When not in Admin Mode, show discreet Sync & Admin Unlock buttons */}
+            {!showAdminControls && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  id="btn-nav-visitor-sync"
+                  onClick={onOpenSyncModal}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-sky-950/70 text-sky-400 hover:text-sky-300 border border-zinc-800 hover:border-sky-800/50 transition-colors"
+                  title="ဖုန်းမှ ပုံများကို ဤတက်ပလက်သို့ သွင်းယူရန် (Cross-Device Sync)"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Sync</span>
+                </button>
+                <button
+                  id="btn-nav-visitor-admin"
+                  onClick={onOpenAdminLogin}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 transition-colors"
+                  title="Admin / Owner Login (PIN: 155155)"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-400/80" />
+                  <span className="hidden sm:inline">Admin</span>
+                </button>
+              </div>
             )}
 
             {/* In-App Direct Install Button for Android/Chrome/Edge/iOS */}
